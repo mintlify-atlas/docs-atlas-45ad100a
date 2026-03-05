@@ -1,0 +1,323 @@
+---
+title: Pomodoro Timer
+description: Customizable Pomodoro timer with session tracking, task integration, and focus analytics for student-athletes
+---
+
+# Pomodoro Timer
+
+The Pomodoro Timer is a core focus tool in Estudio Three, helping student-athletes maintain concentration during study sessions while preventing burnout through structured breaks.
+
+## What It Does
+
+The Pomodoro technique breaks work into focused intervals (typically 25 minutes) separated by short breaks. After completing several focus sessions, you earn a longer break. This system is proven to improve concentration and reduce mental fatigue.
+
+<CardGroup cols={2}>
+  <Card title="Focus Sessions" icon="brain">
+    Configurable work periods (default 25 minutes) for deep, distraction-free work
+  </Card>
+  <Card title="Short Breaks" icon="coffee">
+    5-minute breaks between sessions to recharge and maintain energy
+  </Card>
+  <Card title="Long Breaks" icon="beach">
+    15-minute breaks after completing 4 focus sessions for deeper recovery
+  </Card>
+  <Card title="Session Tracking" icon="chart-line">
+    Automatic logging of all sessions with duration, completion status, and daily statistics
+  </Card>
+</CardGroup>
+
+## Why It Matters
+
+Student-athletes face unique focus challenges:
+- **Mental fatigue** from training and competition
+- **Divided attention** between academics and athletics
+- **Long study sessions** that lead to diminishing returns
+- **Recovery needs** that differ from typical students
+
+The Pomodoro system addresses these by:
+- Providing structure that prevents over-exertion
+- Creating natural break points for physical recovery
+- Tracking focus time to optimize training schedules
+- Building sustainable study habits that respect energy limits
+
+## How to Use It
+
+### Starting Your First Session
+
+1. Navigate to the **Pomodoro Timer** page
+2. Select a task from the dropdown (optional but recommended)
+3. Click the **Play button** to start
+4. Work without interruption until the timer completes
+5. Take your break when prompted
+6. Repeat for optimal productivity
+
+<Tip>
+The timer displays your current session number (e.g., "Session 2/4") so you always know how close you are to your long break.
+</Tip>
+
+### Timer Controls
+
+- **Play/Pause**: Start or pause the current session
+- **Reset**: Restart the current session from full duration
+- **Skip**: Jump to the next session (focus → break or break → focus)
+- **Zen Mode**: Enter fullscreen, distraction-free mode (Maximize icon)
+
+### Task Integration
+
+1. Click the **Current Task** dropdown
+2. Select from your pending tasks
+3. Completed Pomodoros auto-link to that task
+4. Track total Pomodoros per task over time
+
+<Note>
+You can work without selecting a task, but linking tasks helps with time estimation and provides better analytics.
+</Note>
+
+### Customizing Duration
+
+Adjust timing in **Settings**:
+- Focus duration: 15, 25, 30, 45, or 60 minutes
+- Short break: 5, 10, or 15 minutes
+- Long break: 15, 20, or 30 minutes
+- Sessions before long break: 2, 4, or 6
+
+## Session Types
+
+The timer cycles through three session types:
+
+### 1. Focus Session
+
+**Color**: Primary (blue)
+**Purpose**: Deep work on academic tasks
+**Default**: 25 minutes
+
+During focus sessions:
+- Close distractions (social media, messages)
+- Work on a single task only
+- Don't switch tasks mid-session
+- If interrupted, pause and resume when possible
+
+### 2. Short Break
+
+**Color**: Emerald green
+**Purpose**: Quick mental reset
+**Default**: 5 minutes
+
+Use short breaks to:
+- Stretch or walk briefly
+- Hydrate and snack
+- Rest your eyes (look away from screen)
+- Prepare materials for next session
+
+### 3. Long Break
+
+**Color**: Blue
+**Purpose**: Deep recovery between focus blocks
+**Default**: 15 minutes
+
+Use long breaks to:
+- Take a proper break from workspace
+- Light physical activity or stretching
+- Meal or substantial snack
+- Recharge before next focus cycle
+
+## Today's Statistics
+
+The timer displays real-time stats:
+
+<CardGroup cols={2}>
+  <Card title="Today's Pomodoros" icon="tomato">
+    Count of completed focus sessions (not breaks)
+  </Card>
+  <Card title="Focused Minutes" icon="clock">
+    Total time spent in focus mode today
+  </Card>
+</CardGroup>
+
+### Session History
+
+Below the timer, you'll see your most recent 8 sessions with:
+- Session type (focus, short break, long break)
+- Duration completed
+- Timestamp
+
+This helps you review your daily productivity patterns.
+
+## Technical Details
+
+### State Management
+
+**Location**: `src/stores/usePomodoroStore.ts`
+
+The Pomodoro store manages:
+
+```typescript
+interface PomodoroState {
+  config: PomodoroConfig;           // User preferences
+  status: 'idle' | 'running' | 'paused';
+  currentSessionType: 'focus' | 'short_break' | 'long_break';
+  timeRemaining: number;            // Seconds left
+  sessionsCompleted: number;        // Focus sessions in cycle
+  activeTaskId: string | null;      // Linked task
+  sessions: PomodoroSession[];      // History
+}
+```
+
+### Timer Logic
+
+The timer uses a React interval hook (`src/features/pomodoro/components/TimerScreen.tsx:50`):
+
+```typescript
+useEffect(() => {
+  if (status === 'running') {
+    intervalRef.current = window.setInterval(tick, 1000);
+  } else {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  }
+  return () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+}, [status, tick]);
+```
+
+Every second while running, the `tick()` function:
+1. Decrements `timeRemaining`
+2. Checks if session completed (timeRemaining === 0)
+3. If completed:
+   - Saves session to database
+   - Increments task's Pomodoro count (if linked)
+   - Plays completion sound (if enabled)
+   - Auto-starts next session (if configured)
+
+### Session Persistence
+
+Completed sessions are saved to Supabase:
+
+```sql
+focus_sessions (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  task_id UUID REFERENCES tasks(id),
+  mode TEXT CHECK (mode IN ('focus', 'short_break', 'long_break')),
+  duration INTEGER,        -- seconds
+  started_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  was_completed BOOLEAN    -- true if timer ran to 0, false if skipped
+)
+```
+
+### Components
+
+**TimerScreen** (`src/features/pomodoro/components/TimerScreen.tsx:35`)
+- Main timer display with circular progress ring
+- Session type indicator with color coding
+- Task selector dropdown
+- Control buttons (play, pause, reset, skip)
+- Today's statistics
+- Session history list
+
+**TimerRing** (`src/components/TimerRing.tsx`)
+- SVG circular progress indicator
+- Animates smoothly as time decrements
+- Visual percentage complete
+
+**TimerControls** (`src/features/pomodoro/components/TimerControls.tsx`)
+- Abstracted control buttons
+- Handles button states and styling
+
+### Zen Mode
+
+Zen Mode provides a distraction-free fullscreen experience:
+- Hides navigation and sidebars
+- Shows only timer and essential controls
+- Press **Escape** or click minimize to exit
+- Managed by `useZenMode` store
+
+## Analytics & Insights
+
+The timer tracks valuable data for self-improvement:
+
+### Daily Metrics
+- Total Pomodoros completed
+- Total focused minutes
+- Focus time vs break time ratio
+- Session completion rate
+
+### Task Metrics
+- Pomodoros per task
+- Estimated vs actual time
+- Time estimation accuracy
+- Task duration patterns
+
+<Info>
+The AI Coach uses your Pomodoro data to provide personalized productivity suggestions and identify optimal study times.
+</Info>
+
+## Best Practices
+
+<Accordion title="Treat Focus Time as Sacred">
+  During a Pomodoro:
+  - Silence phone notifications
+  - Close unnecessary browser tabs
+  - Use noise-cancelling headphones or find quiet space
+  - Tell others you're unavailable
+  - If an idea or distraction occurs, jot it down quickly and return to focus
+</Accordion>
+
+<Accordion title="Actually Take Breaks">
+  Don't skip breaks, especially after training:
+  - Stand up and move during every break
+  - Longer breaks are crucial for athletes to check in with body
+  - Use breaks to hydrate (ties into hydration tracking)
+  - Don't start a new focus session if you're physically exhausted
+</Accordion>
+
+<Accordion title="Link Tasks for Better Insights">
+  Always select a task when starting a Pomodoro:
+  - Builds accurate time estimates
+  - Shows which subjects need more time
+  - Creates accountability
+  - Feeds data to Smart Routines engine
+</Accordion>
+
+<Accordion title="Adjust for Your Sport">
+  Different sports have different recovery needs:
+  - High-intensity training days: Use longer breaks or shorter focus sessions
+  - Competition days: May need to skip Pomodoros entirely
+  - Off-season: Can push for longer focus blocks
+  - Listen to your body's cognitive capacity
+</Accordion>
+
+## Integration with Other Features
+
+- **Task Management**: Link sessions to specific tasks, auto-increment Pomodoro count
+- **Smart Routines**: Engine uses typical session patterns to optimize daily schedule
+- **Academic Tracking**: Sessions feed study time analytics per subject
+- **AI Coach**: Uses today's Pomodoros in context when providing advice
+- **Achievements**: Unlock badges for focus streaks and milestones
+
+## Configuration Options
+
+```typescript
+interface PomodoroConfig {
+  focusDuration: number;              // minutes
+  shortBreakDuration: number;         // minutes
+  longBreakDuration: number;          // minutes
+  sessionsBeforeLongBreak: number;    // count (2, 4, or 6)
+  autoStartBreaks: boolean;           // start break after focus
+  autoStartFocus: boolean;            // start focus after break
+  soundEnabled: boolean;              // play sound on completion
+}
+```
+
+Default configuration:
+- Focus: 25 minutes
+- Short break: 5 minutes
+- Long break: 15 minutes
+- Sessions before long break: 4
+- Auto-start: Disabled (requires manual start)
+- Sound: Enabled
+
+---
+
+**Next Steps**: Learn how the [Smart Routines](/features/smart-routines) engine uses your Pomodoro patterns to optimize your daily schedule.

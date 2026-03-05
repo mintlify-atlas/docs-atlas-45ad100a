@@ -1,0 +1,144 @@
+---
+title: Introduction
+description: Welcome to Estudio Three - Smart daily routine optimizer for student-athletes
+---
+
+<div style={{
+  background: 'linear-gradient(135deg, #40ca8a 0%, #3aa476 100%)',
+  borderRadius: '20px',
+  padding: '48px 32px',
+  color: 'white',
+  marginBottom: '32px',
+  boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
+}}>
+  <h1 style={{
+    fontSize: '36px',
+    fontWeight: '700',
+    marginBottom: '16px',
+    fontFamily: 'Inter, sans-serif'
+  }}>
+    Balance Your Academic Goals and Athletic Performance
+  </h1>
+  <p style={{
+    fontSize: '18px',
+    opacity: '0.95',
+    fontFamily: 'Inter, sans-serif'
+  }}>
+    Estudio Three is a Progressive Web App designed to solve a critical problem for student-athletes: combining a demanding academic workload with rigorous physical training without burning out.
+  </p>
+</div>
+
+## What is Estudio Three?
+
+**Estudio Three** (formerly Routine Optimizer) is an intelligent planning application that goes beyond traditional calendars. It analyzes your specific context—cognitive fatigue, physical intensity, and recovery needs—to automatically generate schedules that prevent burnout and maximize performance in both academics and athletics.
+
+Unlike generic productivity apps, Estudio Three understands that studying after an intense workout session can be counterproductive. It intelligently schedules your tasks, classes, training sessions, and recovery time to keep you at your peak.
+
+## Key Problems We Solve
+
+<CardGroup cols={2}>
+  <Card title="Cognitive Load Management" icon="brain">
+    Automatically avoids scheduling mentally demanding tasks immediately after intense physical training
+  </Card>
+  <Card title="Adaptive Study Blocks" icon="book-open">
+    Divides study sessions based on your personal attention capacity, with support for ADHD-friendly scheduling
+  </Card>
+  <Card title="Recovery First" icon="moon">
+    Prioritizes sleep and rest as non-negotiable foundations of productivity and performance
+  </Card>
+  <Card title="Burnout Prevention" icon="shield">
+    Balances academic and athletic demands to maintain sustainable high performance
+  </Card>
+</CardGroup>
+
+## Core Features
+
+### Smart Planning & Optimization
+
+- **Intelligent Onboarding**: 4-step guided setup collecting your academic level, athletic intensity, and sleep habits
+- **Dynamic Timeline**: Interactive daily view with color-coded categories (academic, athletic, personal)
+- **Routine Engine**: Heuristic algorithm that distributes blocks while avoiding fatigue collisions
+
+### AI-Powered Assistant
+
+- **Performance Coach**: Personal AI assistant powered by Groq (Llama 3) that answers questions about your routine, fatigue, and schedules in real-time
+- **Quick Actions**: Action chips for instant planning, motivation, and advice
+- **Secure API**: Groq API key never reaches the browser—all requests pass through a serverless proxy on Vercel
+
+### Task & Time Management
+
+- **Advanced Tasks**: Filters by status, priority badges, subtasks, and recurrence with Supabase sync
+- **Calendar Integration**: Monthly/weekly views with event creation (exams, matches, classes) synced to Supabase
+- **Pomodoro Timer**: Configurable timer with active task selection, session history, and animated transitions
+- **Focus Mode**: Immersive overlay with glassmorphism effect, central clock, and procedural ambient sound engine (pink, white, and brown noise)
+
+### Academic Tracking
+
+- **Subject Management**: Subject cards with difficulty ratings and color coding
+- **Grade Tracking**: Weighted grades with comprehensive reporting
+- **Study Resources**: Links, PDFs, videos, and books tied to subjects with domain preview
+
+### Progress & Motivation
+
+- **Statistical Dashboard**: 6 key metrics, weekly performance charts, daily streaks, and completion rates
+- **Habit Tracking**: Daily tracking system with streak calculations synced to Supabase
+- **Achievements & XP**: Gamification system with unlockable achievements, experience points, and levels
+- **Goals System**: Long-term goals with categories (academic, athletic, personal, health) and progress tracking
+
+### Platform Features
+
+- **100% Functional PWA**: Installable on iOS/Android with offline support via Service Worker and automatic updates
+- **Multi-language**: Complete support for 4 languages (Spanish, English, French, Italian) with instant switching
+- **Themes**: Light and dark modes with preference persistence
+- **Command Palette**: Spotlight-style quick navigation with keyboard shortcuts
+- **Accessibility**: Skip-to-content, ARIA labels on interactive components, and semantic HTML5
+
+## Technology Stack
+
+Estudio Three is built with modern, production-ready technologies:
+
+| Component | Technology | Purpose |
+|-----------|------------|---------|
+| **Frontend** | React 19 + TypeScript | Component architecture with type safety |
+| **PWA Core** | Vite PWA | Offline support & installability |
+| **State Management** | Zustand | Lightweight immutable store |
+| **Styling** | Tailwind CSS 3.0 | Atomic responsive design |
+| **Database** | Supabase (PostgreSQL) | Real-time sync with RLS security |
+| **AI Engine** | Groq (Llama 3) | Ultra-fast open source inference |
+| **AI Proxy** | Vercel Serverless | Protects API keys from client |
+| **Testing** | Vitest | Ultra-fast unit tests |
+| **Deployment** | Docker | Consistent environments |
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Get up and running in 5 minutes
+  </Card>
+  <Card title="Installation Guide" icon="download" href="/installation">
+    Full installation instructions for all platforms
+  </Card>
+  <Card title="Core Features" icon="star" href="/features/task-management">
+    Explore what Estudio Three can do
+  </Card>
+  <Card title="Deployment" icon="server" href="/deployment/docker">
+    Deploy your own instance
+  </Card>
+</CardGroup>
+
+## Who Is This For?
+
+Estudio Three is designed for:
+
+- **Student-Athletes**: Balancing academic coursework with training schedules and competitions
+- **Students with ADHD**: Adaptive study blocks and focus tools tailored to attention capacity
+- **High-Performers**: Anyone managing demanding schedules who needs intelligent optimization
+- **Remote Learners**: Students managing independent study schedules without traditional structure
+
+## Open Source & Community
+
+Estudio Three is open source and welcomes contributions from the community. Built as a Final Degree Project (TFG), it represents a comprehensive solution to real-world scheduling challenges faced by student-athletes.
+
+<Note>
+  This project was developed with support from the open source community, including open LLM resources from [eugeneyan/open-llms](https://github.com/eugeneyan/open-llms) and free inference from Groq.
+</Note>

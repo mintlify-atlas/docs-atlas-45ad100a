@@ -1,0 +1,458 @@
+---
+title: Smart Routines Engine
+description: AI-powered daily schedule optimizer that balances academic workload, training schedules, and energy management for student-athletes
+---
+
+# Smart Routines Engine
+
+The Smart Routines Engine is Estudio Three's most sophisticated feature—an intelligent scheduling system that automatically generates optimized daily routines based on your classes, training, academic subjects, and energy patterns.
+
+## What It Does
+
+The engine analyzes your fixed commitments (classes, training, sleep) and available time slots, then intelligently schedules study sessions, breaks, and other activities to maximize productivity while preventing burnout.
+
+<CardGroup cols={2}>
+  <Card title="Automatic Scheduling" icon="calendar-days">
+    Generates complete daily routines from wake time to bed time
+  </Card>
+  <Card title="Energy Management" icon="battery-charging">
+    Tracks cognitive and physical load to prevent over-scheduling
+  </Card>
+  <Card title="Smart Fragmentation" icon="puzzle-piece">
+    Splits large tasks across multiple time slots when needed
+  </Card>
+  <Card title="Pomodoro Integration" icon="clock">
+    Expands study blocks into Pomodoro sessions with breaks
+  </Card>
+</CardGroup>
+
+## Why It Matters
+
+Student-athletes face the hardest scheduling challenge of any student demographic:
+- **Fixed training times** that can't be moved
+- **Variable practice lengths** depending on season
+- **Competition schedules** that disrupt routine
+- **Recovery needs** that affect study capacity
+- **Multiple subjects** with different difficulty levels
+- **Limited time** between physical and mental demands
+
+Manual scheduling is time-consuming and often suboptimal. The Smart Routines Engine solves this by:
+- Considering all constraints simultaneously
+- Optimizing for both short-term efficiency and long-term sustainability
+- Adapting to your specific sport and academic load
+- Learning from your actual patterns over time
+
+## How to Use It
+
+### Initial Setup
+
+1. **Complete Onboarding**
+   - Enter class schedule (days and times)
+   - Add training schedule (sport-specific times)
+   - Set sleep preferences (wake time and bed time)
+   - Add academic subjects with difficulty ratings
+
+2. **Configure Focus Preferences**
+   - Choose between different study strategies:
+     - **Pomodoro**: 25-min focus + 5-min breaks
+     - **Extended**: 45-min focus + 15-min breaks
+     - **Intense**: 60-min focus + 10-min breaks
+
+3. **Generate Your First Routine**
+   - Navigate to Daily Routine view
+   - Routine auto-generates for today
+   - Review the schedule and adjust if needed
+
+### Understanding Your Routine
+
+Your daily routine contains different block types:
+
+#### Fixed Blocks (Gray, Locked)
+- **Classes**: Your school schedule
+- **Training**: Practice times
+- **Sleep**: Bedtime anchor
+- Cannot be edited or moved
+
+#### Study Blocks (Blue, Editable)
+- **Subject-specific**: "Study: Physics"
+- **Duration**: Based on subject difficulty
+- **Energy cost**: Higher for difficult subjects
+- Can be manually adjusted
+
+#### Break Blocks (Green)
+- **Short breaks**: 5-10 minutes
+- **Long breaks**: 15-30 minutes
+- Automatically inserted between study sessions
+- Part of Pomodoro expansion
+
+#### Habit Blocks (Purple)
+- **Daily habits**: Reading, meditation, etc.
+- **Low energy cost**: Scheduled in lower-energy periods
+- Optional but encouraged
+
+### Viewing Your Routine
+
+The routine displays as a visual timeline:
+- **Time labels**: Shows start time for each block
+- **Color coding**: Category-based colors
+- **Duration indicators**: Shows block length
+- **Energy bars**: Visual cognitive and physical load
+
+<Tip>
+Swipe or scroll to see your full day from wake time to bed time. Tap any block to see details or mark it complete.
+</Tip>
+
+## Key Capabilities
+
+### Intelligent Time Slot Detection
+
+The engine identifies gaps in your schedule:
+
+```typescript
+function findFreeSlots(
+  fixedBlocks: RoutineBlock[], 
+  wakeTime: string, 
+  bedTime: string
+): EngineTimeSlot[]
+```
+
+**Algorithm** (`src/features/routine/engine/solver.ts:103`):
+1. Sort fixed blocks by start time
+2. Iterate from wake time to bed time
+3. Identify gaps between blocks
+4. Filter out gaps smaller than 15 minutes
+5. Return array of available time slots
+
+### Priority-Based Task Allocation
+
+Study sessions are scheduled by priority:
+
+```typescript
+function createTaskQueue(profile: UserProfile): EngineTask[] {
+  const queue: EngineTask[] = [];
+  
+  // Add subjects as tasks
+  profile.subjects.forEach(subject => {
+    const baseDuration = subject.difficulty * 20; // minutes
+    queue.push({
+      id: subject.id,
+      name: `Study: ${subject.name}`,
+      category: 'ACADEMIC',
+      baseDuration: Math.max(30, baseDuration),
+      priority: subject.difficulty,
+      energyCost: subject.difficulty + 5
+    });
+  });
+  
+  return queue.sort((a, b) => b.priority - a.priority);
+}
+```
+
+Higher difficulty subjects get scheduled first in optimal time slots.
+
+### Energy Load Management
+
+The engine tracks two types of load:
+
+**Cognitive Load** (Academic work)
+- Classes: 7 units/min
+- Study: 5-14 units/min (based on difficulty)
+- Habits: 2 units/min
+
+**Physical Load** (Athletic work)
+- Primary training: 9 units/min
+- Secondary training: 7 units/min
+- Competition/Events: 10 units/min
+
+**Daily Maximum**: 5,500 total load units
+
+```typescript
+const MAX_DAILY_LOAD = 5500;
+
+if (currentTotalLoad + taskCost > MAX_DAILY_LOAD) {
+  // Reduce task duration or skip to prevent burnout
+  const remainingEnergy = MAX_DAILY_LOAD - currentTotalLoad;
+  const maxAllowedDuration = Math.floor(remainingEnergy / task.energyCost);
+  // ... cap the task duration
+}
+```
+
+This prevents over-scheduling and respects your energy limits.
+
+### Task Fragmentation
+
+When a study session doesn't fit in a single time slot, the engine fragments it:
+
+**Scenario**: Need 60 minutes for Physics, but only have 40-minute gap before training.
+
+**Solution**:
+1. Schedule 40 minutes of Physics in first slot
+2. Create "Physics (Part 2)" task with 20 minutes remaining
+3. Place Part 2 in next available slot after training
+4. User sees continuous progress across day
+
+**Implementation** (`src/features/routine/engine/solver.ts:252`):
+
+```typescript
+// Scenario 2: Task needs more time than available
+const timeToSchedule = timeAvailable;
+const remainingTime = timeNeeded - timeToSchedule;
+
+const fragmentTask: EngineTask = {
+  ...effectiveTask,
+  baseDuration: timeToSchedule,
+  name: `${effectiveTask.name} (Part 1)`
+};
+
+// Schedule fragment
+const newBlocks = expandSession(fragmentTask, slot, ...);
+generatedBlocks.push(...newBlocks);
+
+// Re-queue remaining portion
+if (remainingTime >= MIN_TASK) {
+  taskQueue.unshift({
+    ...effectiveTask,
+    baseDuration: remainingTime,
+    name: `${effectiveTask.name} (Part 2)`
+  });
+}
+```
+
+### Session Expansion (Pomodoro)
+
+The engine expands study blocks into Pomodoro sessions:
+
+**Input**: "Study Physics" - 60 minutes
+
+**Output** (with Pomodoro strategy):
+1. Study Physics - 25 min
+2. Short Break - 5 min
+3. Study Physics - 25 min
+4. Short Break - 5 min
+
+**Implementation** (`src/features/routine/engine/sessionExpander.ts`):
+
+```typescript
+export function expandSession(
+  task: EngineTask,
+  slot: EngineTimeSlot,
+  strategy: FocusPreferences,
+  startMinutes: number
+): RoutineBlock[] {
+  const blocks: RoutineBlock[] = [];
+  let timeUsed = 0;
+  
+  while (timeUsed < task.baseDuration) {
+    // Add focus block
+    blocks.push({
+      type: 'STUDY',
+      category: task.category,
+      title: task.name,
+      duration: strategy.focusDuration,
+      startTime: toTimeString(startMinutes + timeUsed),
+      // ...
+    });
+    
+    timeUsed += strategy.focusDuration;
+    
+    // Add break if not done
+    if (timeUsed < task.baseDuration) {
+      blocks.push({
+        type: 'BREAK',
+        title: 'Short Break',
+        duration: strategy.breakDuration,
+        // ...
+      });
+      timeUsed += strategy.breakDuration;
+    }
+  }
+  
+  return blocks;
+}
+```
+
+## Technical Architecture
+
+### Solver Algorithm
+
+The core routine generation follows a **First-Fit Decreasing** algorithm:
+
+**Steps**:
+1. Create fixed blocks (classes, training, sleep)
+2. Find free time slots between fixed blocks
+3. Create priority queue of tasks (subjects)
+4. For each task (highest priority first):
+   - Check energy budget remaining
+   - Try to fit in first available slot
+   - If doesn't fit, fragment across multiple slots
+   - Expand into Pomodoro sessions with breaks
+5. Sort all blocks by start time
+6. Return complete routine
+
+**Main Function** (`src/features/routine/engine/solver.ts:173`):
+
+```typescript
+export function generateDailyRoutine(
+  profile: UserProfile,
+  date: Date,
+  injectedTasks?: EngineTask[],
+  injectedSlots?: EngineTimeSlot[]
+): RoutineBlock[]
+```
+
+### Data Types
+
+```typescript
+interface RoutineBlock {
+  id: string;
+  type: 'FIXED' | 'STUDY' | 'BREAK';
+  category: 'ACADEMIC' | 'SPORT' | 'HEALTH' | 'LEISURE';
+  title: string;
+  priority: number;
+  duration: number;        // minutes
+  startTime: string;       // HH:MM format
+  isLocked: boolean;       // true for fixed blocks
+  energyCost: number;      // load units per minute
+}
+
+interface EngineTimeSlot {
+  startMinutes: number;    // minutes since midnight
+  endMinutes: number;
+  duration: number;
+}
+
+interface EngineTask {
+  id: string;
+  name: string;
+  category: 'ACADEMIC' | 'SPORT' | 'HEALTH' | 'LEISURE';
+  baseDuration: number;    // minutes needed
+  priority: number;        // 1-10
+  energyCost: number;      // load per minute
+}
+```
+
+### Focus Strategies
+
+Three built-in strategies (`src/features/routine/engine/sessionExpander.ts`):
+
+```typescript
+const DEFAULT_STRATEGIES = {
+  POMODORO: {
+    name: 'Pomodoro',
+    focusDuration: 25,
+    breakDuration: 5,
+    blocksBeforeLongBreak: 4,
+    longBreakDuration: 15
+  },
+  EXTENDED: {
+    name: 'Extended Focus',
+    focusDuration: 45,
+    breakDuration: 15,
+    blocksBeforeLongBreak: 3,
+    longBreakDuration: 30
+  },
+  INTENSE: {
+    name: 'Deep Work',
+    focusDuration: 60,
+    breakDuration: 10,
+    blocksBeforeLongBreak: 2,
+    longBreakDuration: 20
+  }
+};
+```
+
+## Configuration
+
+### Subject Difficulty
+
+When adding subjects, difficulty affects:
+- **Priority**: Higher difficulty scheduled earlier in available time
+- **Duration**: difficulty × 20 minutes per session
+- **Energy cost**: difficulty + 5 units per minute
+
+Example:
+- Physics (difficulty 10): 200 min/session, 15 energy/min, highest priority
+- English (difficulty 5): 100 min/session, 10 energy/min, medium priority
+
+### Class & Training Schedules
+
+Fixed schedules use day-of-week format:
+- 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+- Multiple blocks per day supported
+- Time format: "HH:MM" (24-hour)
+
+```typescript
+interface ClassSlot {
+  day: number;      // 0-6
+  startTime: string;
+  endTime: string;
+}
+
+interface TrainingSlot {
+  day: number;
+  startTime: string;
+  endTime: string;
+  isSecondary: boolean;  // secondary training = lower intensity
+}
+```
+
+## Best Practices
+
+<Accordion title="Accurate Difficulty Ratings">
+  Rate subject difficulty honestly based on:
+  - Your personal strengths/weaknesses (not the subject's reputation)
+  - Current grade or performance
+  - Time typically needed per week
+  - Upcoming exam importance
+  
+  The engine relies on these ratings to allocate time properly.
+</Accordion>
+
+<Accordion title="Realistic Sleep Schedule">
+  Enter your ACTUAL wake and sleep times, not aspirational ones:
+  - Engine schedules from wake to bed
+  - Unrealistic times lead to over-scheduling
+  - Consider your sport's demands (early morning practice vs. late night)
+  - Include buffer time for morning routine
+</Accordion>
+
+<Accordion title="Review and Adjust">
+  The engine provides a strong starting point, but:
+  - Manually adjust blocks if needed
+  - Mark blocks complete as you finish them
+  - Engine learns from your completion patterns
+  - Re-generate weekly as schedules change
+</Accordion>
+
+<Accordion title="Respect Energy Limits">
+  If the engine:
+  - Reduces study session durations
+  - Skips low-priority subjects
+  - Shows high load bars
+  
+  Don't override to add more work. Your schedule is full. Consider:
+  - Reducing subject difficulty ratings if consistently too easy
+  - Adjusting training schedule if you have more availability
+  - Using weekends for additional study if needed
+</Accordion>
+
+## Integration with Other Features
+
+- **Task Management**: Routine blocks can link to specific tasks
+- **Pomodoro Timer**: Study blocks expand into timed Pomodoro sessions
+- **Academic Tracking**: Subject study time feeds grade correlation analytics
+- **AI Coach**: Uses routine load data to suggest adjustments
+- **Calendar**: Imports events that affect routine generation
+
+## Future Enhancements
+
+Planned improvements:
+- Machine learning to predict optimal study times based on performance
+- Competition day detection with automatic schedule adjustment
+- Recovery scoring based on training intensity
+- Multi-day optimization (weekly planning)
+- Integration with wearables for actual energy tracking
+
+---
+
+**Next Steps**: Track your academic progress with [Academic Tracking](/features/academic-tracking) to see how optimized routines improve your grades.

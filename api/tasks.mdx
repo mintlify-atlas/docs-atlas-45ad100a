@@ -1,0 +1,464 @@
+---
+title: 'Tasks'
+description: 'Task management with Supabase and Zustand'
+---
+
+# Tasks API
+
+Manage academic and personal tasks with support for subtasks, recurring patterns, and Pomodoro tracking.
+
+## Store Location
+
+`src/stores/useTaskStore.ts`
+
+## Data Types
+
+### Task
+
+```typescript
+interface Task {
+  id: string;                           // UUID
+  title: string;                        // Task title (sanitized)
+  description?: string;                 // Optional description
+  status: TaskStatus;                   // 'pending' | 'in_progress' | 'completed'
+  priority: TaskPriority;               // 'urgent' | 'high' | 'medium' | 'low'
+  dueDate?: string;                     // ISO date string
+  isRecurring: boolean;                 // Recurring task flag
+  recurringPattern?: RecurringPattern;  // Recurrence configuration
+  pomodorosEstimated?: number;          // Estimated pomodoros
+  pomodorosCompleted: number;           // Completed pomodoros
+  createdAt: string;                    // ISO timestamp
+  completedAt?: string;                 // ISO timestamp when completed
+  subtasks: Subtask[];                  // Array of subtasks
+}
+```
+
+### Subtask
+
+```typescript
+interface Subtask {
+  id: string;           // UUID
+  title: string;        // Subtask title
+  isCompleted: boolean; // Completion status
+}
+```
+
+### TaskStatus
+
+```typescript
+type TaskStatus = 'pending' | 'in_progress' | 'completed';
+```
+
+### TaskPriority
+
+```typescript
+type TaskPriority = 'urgent' | 'high' | 'medium' | 'low';
+```
+
+### RecurringPattern
+
+```typescript
+interface RecurringPattern {
+  frequency: 'daily' | 'weekly' | 'monthly';
+  interval?: number;        // Every N days/weeks/months
+  daysOfWeek?: number[];    // For weekly: [0-6] (Sunday=0)
+  endDate?: string;         // ISO date string
+}
+```
+
+## Task Operations
+
+### Fetch Tasks
+
+<ParamField path="limit" type="number">
+  Maximum tasks to fetch (default: 50)
+</ParamField>
+
+```typescript
+import { useTaskStore } from '@/stores/useTaskStore';
+
+// Fetch latest 50 tasks
+await useTaskStore.getState().fetchTasks();
+
+// Fetch specific limit
+await useTaskStore.getState().fetchTasks(100);
+```
+
+**Query:**
+```sql
+SELECT tasks.*, subtasks.*
+FROM tasks
+LEFT JOIN subtasks ON subtasks.task_id = tasks.id
+WHERE user_id = $1
+ORDER BY created_at DESC
+LIMIT $2;
+```
+
+### Add Task
+
+<ParamField path="title" type="string" required>
+  Task title (sanitized before saving)
+</ParamField>
+
+<ParamField path="options" type="object">
+  Optional task configuration
+  
+  **Fields:**
+  - `priority` (TaskPriority): Default 'medium'
+  - `dueDate` (string): ISO date string
+  - `isRecurring` (boolean): Default false
+  - `recurringPattern` (RecurringPattern): Required if isRecurring=true
+</ParamField>
+
+```typescript
+// Simple task
+await useTaskStore.getState().addTask('Complete Math homework');
+
+// Task with options
+await useTaskStore.getState().addTask('Study for exam', {
+  priority: 'urgent',
+  dueDate: '2026-03-15',
+  isRecurring: false
+});
+
+// Recurring task
+await useTaskStore.getState().addTask('Daily review', {
+  priority: 'medium',
+  isRecurring: true,
+  recurringPattern: {
+    frequency: 'daily',
+    interval: 1
+  }
+});
+```
+
+**Process:**
+1. Sanitizes title using `sanitizarTexto()`
+2. Generates UUID
+3. Creates task with defaults
+4. Optimistically updates store
+5. Syncs to Supabase
+
+### Update Task
+
+<ParamField path="id" type="string" required>
+  Task UUID
+</ParamField>
+
+<ParamField path="updates" type="Partial<Task>" required>
+  Fields to update
+</ParamField>
+
+```typescript
+await useTaskStore.getState().updateTask('task-uuid', {
+  title: 'Updated title',
+  priority: 'high',
+  dueDate: '2026-03-20'
+});
+```
+
+**Updatable Fields:**
+- `title` (sanitized)
+- `status`
+- `priority`
+- `dueDate`
+
+### Delete Task
+
+<ParamField path="id" type="string" required>
+  Task UUID
+</ParamField>
+
+```typescript
+await useTaskStore.getState().deleteTask('task-uuid');
+```
+
+**Cascade:** Deletes all subtasks due to `ON DELETE CASCADE` in schema.
+
+### Toggle Task Status
+
+<ParamField path="id" type="string" required>
+  Task UUID
+</ParamField>
+
+Cycles through: `pending` → `in_progress` → `completed` → `pending`
+
+```typescript
+await useTaskStore.getState().toggleTaskStatus('task-uuid');
+```
+
+**Process:**
+1. Finds task in store
+2. Calculates next status
+3. Sets `completedAt` timestamp when status becomes 'completed'
+4. Optimistically updates store
+5. Syncs to database
+6. Triggers achievement check if completed
+7. Creates next recurring task if applicable
+
+**Recurring Task Logic:**
+```typescript
+if (nextStatus === 'completed' && task.isRecurring && task.recurringPattern) {
+  const nextDate = calculateNextDueDate(baseDate, task.recurringPattern);
+  // Creates new task with:
+  // - Same title, priority, pattern
+  // - Status: 'pending'
+  // - New UUID
+  // - Reset subtasks (all uncompleted)
+  // - New dueDate
+}
+```
+
+## Subtask Operations
+
+### Add Subtask
+
+<ParamField path="taskId" type="string" required>
+  Parent task UUID
+</ParamField>
+
+<ParamField path="title" type="string" required>
+  Subtask title
+</ParamField>
+
+```typescript
+await useTaskStore.getState().addSubtask('task-uuid', 'Read chapter 1');
+```
+
+### Toggle Subtask
+
+<ParamField path="taskId" type="string" required>
+  Parent task UUID
+</ParamField>
+
+<ParamField path="subtaskId" type="string" required>
+  Subtask UUID
+</ParamField>
+
+```typescript
+await useTaskStore.getState().toggleSubtask('task-uuid', 'subtask-uuid');
+```
+
+### Delete Subtask
+
+<ParamField path="taskId" type="string" required>
+  Parent task UUID
+</ParamField>
+
+<ParamField path="subtaskId" type="string" required>
+  Subtask UUID
+</ParamField>
+
+```typescript
+await useTaskStore.getState().deleteSubtask('task-uuid', 'subtask-uuid');
+```
+
+## Filtering and Sorting
+
+### Set Filter
+
+<ParamField path="filter" type="TaskStatus | 'all'" required>
+  Filter by status or show all
+</ParamField>
+
+```typescript
+useTaskStore.getState().setFilter('pending');    // Show only pending
+useTaskStore.getState().setFilter('completed');  // Show only completed
+useTaskStore.getState().setFilter('all');        // Show all tasks
+```
+
+### Set Sort Order
+
+<ParamField path="sortBy" type="'priority' | 'dueDate' | 'createdAt'" required>
+  Sort criterion
+</ParamField>
+
+```typescript
+useTaskStore.getState().setSortBy('priority');   // Sort by priority
+useTaskStore.getState().setSortBy('dueDate');    // Sort by due date
+useTaskStore.getState().setSortBy('createdAt');  // Sort by creation date
+```
+
+**Priority Order:**
+```typescript
+const PRIORITY_ORDER = {
+  urgent: 0,
+  high: 1,
+  medium: 2,
+  low: 3
+};
+```
+
+### Get Filtered Tasks
+
+Applies current filter and sort settings:
+
+```typescript
+const filteredTasks = useTaskStore.getState().getFilteredTasks();
+```
+
+## Store State
+
+```typescript
+const { tasks, filter, sortBy, isLoading } = useTaskStore();
+
+console.log(`Showing ${tasks.length} tasks`);
+console.log(`Filter: ${filter}, Sort: ${sortBy}`);
+```
+
+### Store Fields
+
+<ResponseField name="tasks" type="Task[]">
+  Array of all tasks (unfiltered)
+</ResponseField>
+
+<ResponseField name="filter" type="TaskStatus | 'all'">
+  Current filter setting
+</ResponseField>
+
+<ResponseField name="sortBy" type="'priority' | 'dueDate' | 'createdAt'">
+  Current sort criterion
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  Loading state during fetch operations
+</ResponseField>
+
+## Database Schema
+
+From `/home/daytona/workspace/source/supabase/schema.sql:155`:
+
+```sql
+create table tasks (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  subject_id uuid references subjects(id) on delete set null,
+  goal_id uuid references goals(id) on delete set null,
+  
+  title text not null,
+  description text,
+  status task_status default 'pending',
+  priority task_priority default 'medium',
+  due_date timestamp with time zone,
+  
+  is_recurring boolean default false,
+  recurrence_pattern jsonb,
+  
+  pomodoros_estimated int default 0,
+  pomodoros_completed int default 0,
+  
+  created_at timestamp with time zone default now(),
+  updated_at timestamp with time zone default now(),
+  completed_at timestamp with time zone
+);
+
+create table subtasks (
+  id uuid default gen_random_uuid() primary key,
+  task_id uuid references tasks(id) on delete cascade not null,
+  title text not null,
+  is_completed boolean default false
+);
+```
+
+## Row Level Security
+
+```sql
+-- Users can only access their own tasks
+create policy "Usuarios gestionan sus tareas" 
+  on tasks for all 
+  using ( auth.uid() = user_id );
+
+-- Subtasks inherit task permissions
+create policy "Usuarios gestionan sus subtareas" 
+  on subtasks for all 
+  using ( 
+    exists (
+      select 1 from tasks 
+      where id = subtasks.task_id 
+        and user_id = auth.uid()
+    )
+  );
+```
+
+## Pomodoro Integration
+
+Tasks track Pomodoro sessions:
+
+```typescript
+// Increment completed pomodoros
+const task = useTaskStore.getState().tasks.find(t => t.id === 'task-uuid');
+if (task) {
+  await useTaskStore.getState().updateTask(task.id, {
+    pomodorosCompleted: task.pomodorosCompleted + 1
+  });
+}
+```
+
+Alternatively, use the database function:
+
+```sql
+SELECT increment_task_pomodoros('task-uuid');
+```
+
+## Achievements Integration
+
+When a task is completed, achievement check is triggered:
+
+```typescript
+if (nextStatus === 'completed') {
+  const totalCompleted = tasks.filter(t => t.status === 'completed').length;
+  
+  // Dynamic import to avoid circular dependencies
+  const { useAchievementsStore } = await import('./useAchievementsStore');
+  useAchievementsStore.getState().checkAndUnlock('task_complete', { 
+    count: totalCompleted 
+  });
+}
+```
+
+## Persistence
+
+Store is persisted to localStorage:
+
+```typescript
+{
+  name: 'focus-tasks-storage',
+  storage: localStorage
+}
+```
+
+**Note:** All fields are persisted. Tasks remain cached even offline.
+
+## Example: Task List Component
+
+```typescript
+import { useTaskStore } from '@/stores/useTaskStore';
+import { useEffect } from 'react';
+
+function TaskList() {
+  const { fetchTasks, getFilteredTasks, toggleTaskStatus, isLoading } = useTaskStore();
+
+  useEffect(() => {
+    fetchTasks();
+  }, [fetchTasks]);
+
+  const tasks = getFilteredTasks();
+
+  if (isLoading) return <div>Loading tasks...</div>;
+
+  return (
+    <ul>
+      {tasks.map(task => (
+        <li key={task.id}>
+          <button onClick={() => toggleTaskStatus(task.id)}>
+            {task.status === 'completed' ? '✓' : '○'}
+          </button>
+          <span>{task.title}</span>
+          <span>Priority: {task.priority}</span>
+          <span>Subtasks: {task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+```

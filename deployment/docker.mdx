@@ -1,0 +1,410 @@
+---
+title: Docker Deployment
+description: Deploy Estudio Three using Docker containers for production environments
+---
+
+Docker provides a containerized deployment option for Estudio Three, packaging the application with Nginx for serving the PWA in production environments.
+
+## Prerequisites
+
+- Docker 24.x or higher
+- Docker Compose (optional, for simplified workflows)
+- `.env` file configured with all required variables
+
+## Docker Architecture
+
+Estudio Three uses a **multi-stage Docker build**:
+
+1. **Build stage**: Compiles the Vite application with embedded environment variables
+2. **Production stage**: Serves the static build with Nginx (unprivileged)
+
+<Warning>
+  VITE_ environment variables must be provided at **build time**, not runtime, as they are embedded into the JavaScript bundle
+</Warning>
+
+## Management Scripts
+
+Estudio Three includes interactive management scripts for both Unix and Windows:
+
+### Linux/macOS: manage.sh
+
+<Steps>
+  <Step title="Make script executable">
+    ```bash
+    chmod +x scripts/manage.sh
+    ```
+  </Step>
+  
+  <Step title="Run the manager">
+    ```bash
+    ./scripts/manage.sh
+    ```
+  </Step>
+  
+  <Step title="Select option">
+    The interactive menu provides:
+    - **[1] Lanzar Rápido**: Quick start (skips rebuild if image exists)
+    - **[2] Construcción Total**: Force rebuild and launch
+    - **[3] Terminal Shell**: Access container shell
+    - **[4] Ver Registros**: View live logs
+    - **[5] Detener Sistema**: Stop container
+    - **[6-8] Dev Tools**: Development server, tests, cache cleanup
+    - **[9] Info Sistema**: System diagnostics
+    - **[10] Limpieza Docker**: Remove image and container
+  </Step>
+</Steps>
+
+### Windows: manage.ps1
+
+<Steps>
+  <Step title="Run PowerShell script">
+    ```powershell
+    .\scripts\manage.ps1
+    ```
+  </Step>
+  
+  <Step title="Docker detection">
+    The script automatically detects:
+    - Docker Desktop (Windows)
+    - Docker in WSL (fallback)
+  </Step>
+  
+  <Step title="Use interactive menu">
+    Similar options to the bash script with additional features:
+    - **[12] Exponer a Internet**: Cloudflare Tunnel integration
+    - **[13-14] I18N Tools**: Translation management
+  </Step>
+</Steps>
+
+## Manual Docker Commands
+
+If you prefer manual control over the Docker workflow:
+
+### Building the Image
+
+<CodeGroup>
+
+```bash Linux/macOS
+# Load environment variables
+export $(cat .env | grep -v '^#' | xargs)
+
+# Build with arguments
+docker build \
+  --build-arg VITE_SUPABASE_URL="$VITE_SUPABASE_URL" \
+  --build-arg VITE_SUPABASE_ANON_KEY="$VITE_SUPABASE_ANON_KEY" \
+  --build-arg VITE_APP_URL="$VITE_APP_URL" \
+  -t estudio:latest \
+  -f deploy/docker/Dockerfile \
+  .
+```
+
+```powershell Windows PowerShell
+# Load environment variables
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^([^#][^=]+)=(.*)$') {
+        [Environment]::SetEnvironmentVariable($matches[1], $matches[2])
+    }
+}
+
+# Build with arguments
+docker build `
+  --build-arg VITE_SUPABASE_URL="$env:VITE_SUPABASE_URL" `
+  --build-arg VITE_SUPABASE_ANON_KEY="$env:VITE_SUPABASE_ANON_KEY" `
+  --build-arg VITE_APP_URL="$env:VITE_APP_URL" `
+  -t estudio:latest `
+  -f deploy/docker/Dockerfile `
+  .
+```
+
+```bash Direct Arguments
+# Specify values directly (not recommended for sensitive data)
+docker build \
+  --build-arg VITE_SUPABASE_URL=https://your-project.supabase.co \
+  --build-arg VITE_SUPABASE_ANON_KEY=eyJxxxxxxxxxxxx \
+  --build-arg VITE_APP_URL=https://yourdomain.com \
+  -t estudio:latest \
+  -f deploy/docker/Dockerfile \
+  .
+```
+
+</CodeGroup>
+
+<Note>
+  Build time typically takes 2-5 minutes depending on your system and network speed
+</Note>
+
+### Running the Container
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  --name estudio-web \
+  estudio:latest
+```
+
+Access the application at `http://localhost:8080`
+
+### Container Management
+
+```bash
+# View logs
+docker logs -f estudio-web
+
+# Stop container
+docker stop estudio-web
+
+# Remove container
+docker rm estudio-web
+
+# Access container shell
+docker exec -it estudio-web sh
+
+# View resource usage
+docker stats estudio-web
+```
+
+## Docker Compose
+
+For more complex setups, use Docker Compose:
+
+<CodeGroup>
+
+```yaml Production Profile
+# Run production build
+docker-compose --profile prod up --build
+
+# Access at http://localhost:8080
+```
+
+```yaml Development Profile
+# Run development server with hot reload
+docker-compose --profile dev up
+
+# Access at http://localhost:5173
+# Source files in src/ are mounted for live updates
+```
+
+</CodeGroup>
+
+The `docker-compose.yml` file includes two profiles:
+
+- **dev**: Runs `npm run dev` with source volume mounts
+- **prod**: Serves production build with Nginx
+
+## Port Mappings
+
+| Container Port | Host Port | Purpose |
+|----------------|-----------|----------|
+| 8080 | 8080 | Production Nginx server |
+| 5173 | 5173 | Development Vite server |
+
+<Note>
+  The production build uses `nginxinc/nginx-unprivileged:alpine` which runs on port 8080 instead of the standard 80 for security
+</Note>
+
+## Volumes and Persistence
+
+The Docker image includes:
+
+- **Static assets**: Built application in `/usr/share/nginx/html`
+- **Nginx config**: Custom configuration at `/etc/nginx/conf.d/default.conf`
+- **No persistent data**: All data is stored in Supabase
+
+<Warning>
+  This application stores all user data in Supabase, not in the container. No volume mounts are required for data persistence.
+</Warning>
+
+## Production Considerations
+
+### Security
+
+<Steps>
+  <Step title="Use unprivileged images">
+    The Dockerfile uses `nginxinc/nginx-unprivileged:alpine` which runs as a non-root user
+  </Step>
+  
+  <Step title="Don't expose service_role key">
+    Never pass Supabase `service_role` key to the Docker build. Only use `anon` key.
+  </Step>
+  
+  <Step title="Use HTTPS in production">
+    Deploy behind a reverse proxy (Nginx, Traefik) with SSL certificates
+  </Step>
+  
+  <Step title="Scan for vulnerabilities">
+    ```bash
+    docker scan estudio:latest
+    ```
+  </Step>
+</Steps>
+
+### Performance Optimization
+
+<Steps>
+  <Step title="Enable gzip compression">
+    The Nginx configuration should include:
+    ```nginx
+    gzip on;
+    gzip_types text/css application/javascript application/json;
+    ```
+  </Step>
+  
+  <Step title="Set resource limits">
+    ```bash
+    docker run -d \
+      -p 8080:8080 \
+      --memory="512m" \
+      --cpus="1.0" \
+      --name estudio-web \
+      estudio:latest
+    ```
+  </Step>
+  
+  <Step title="Use multi-stage builds">
+    The Dockerfile already uses multi-stage builds to minimize image size:
+    - Build stage: ~600MB (Node.js + dependencies)
+    - Final stage: ~30MB (Nginx + static files only)
+  </Step>
+</Steps>
+
+### Health Checks
+
+Add health checks to your Docker run command:
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  --name estudio-web \
+  --health-cmd="wget --no-verbose --tries=1 --spider http://localhost:8080 || exit 1" \
+  --health-interval=30s \
+  --health-timeout=3s \
+  --health-retries=3 \
+  estudio:latest
+```
+
+### Logging
+
+Configure log drivers for centralized logging:
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  --name estudio-web \
+  --log-driver json-file \
+  --log-opt max-size=10m \
+  --log-opt max-file=3 \
+  estudio:latest
+```
+
+## Deployment to Cloud
+
+### AWS ECS/Fargate
+
+<Steps>
+  <Step title="Push to ECR">
+    ```bash
+    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account-id>.dkr.ecr.us-east-1.amazonaws.com
+    docker tag estudio:latest <account-id>.dkr.ecr.us-east-1.amazonaws.com/estudio:latest
+    docker push <account-id>.dkr.ecr.us-east-1.amazonaws.com/estudio:latest
+    ```
+  </Step>
+  
+  <Step title="Create ECS task definition">
+    Define container with environment variables and port mappings
+  </Step>
+  
+  <Step title="Deploy to ECS service">
+    Create or update service with the new task definition
+  </Step>
+</Steps>
+
+### Google Cloud Run
+
+```bash
+# Build and push to GCR
+gcloud builds submit --tag gcr.io/PROJECT_ID/estudio
+
+# Deploy to Cloud Run
+gcloud run deploy estudio \
+  --image gcr.io/PROJECT_ID/estudio \
+  --platform managed \
+  --port 8080 \
+  --set-env-vars VITE_SUPABASE_URL=https://...,VITE_SUPABASE_ANON_KEY=...
+```
+
+<Warning>
+  Cloud Run requires environment variables at deployment time. The image must be rebuilt with correct VITE_ variables, or use a runtime configuration approach.
+</Warning>
+
+### Azure Container Instances
+
+```bash
+az container create \
+  --resource-group myResourceGroup \
+  --name estudio-web \
+  --image estudio:latest \
+  --ports 8080 \
+  --dns-name-label estudio-app
+```
+
+## Troubleshooting
+
+### Blank screen after deployment
+
+**Problem**: Application loads but shows blank screen
+
+**Cause**: Environment variables not provided at build time
+
+**Solution**: Rebuild the image with `--build-arg` for all `VITE_` variables
+
+### "Cannot find module" errors
+
+**Problem**: Build fails with missing dependencies
+
+**Solution**: Ensure `package-lock.json` is committed and `npm ci` is used (not `npm install`)
+
+### Port already in use
+
+**Problem**: `docker run` fails with "port is already allocated"
+
+**Solution**: 
+```bash
+# Check what's using port 8080
+lsof -i :8080  # macOS/Linux
+netstat -ano | findstr :8080  # Windows
+
+# Use different port
+docker run -d -p 8081:8080 --name estudio-web estudio:latest
+```
+
+### Container exits immediately
+
+**Problem**: Container starts but exits immediately
+
+**Solution**: Check logs for errors
+```bash
+docker logs estudio-web
+```
+
+Common causes:
+- Nginx configuration syntax error
+- Missing build files in `/usr/share/nginx/html`
+
+### Permission denied errors
+
+**Problem**: Container can't write to filesystem
+
+**Solution**: The unprivileged Nginx runs as user `nginx` (UID 101). Ensure files are readable:
+```dockerfile
+COPY --chown=nginx:nginx deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
+```
+
+## Next Steps
+
+- [Configure environment variables](/deployment/environment-variables)
+- [Set up Supabase database](/deployment/supabase-setup)
+- [Deploy to Vercel](/deployment/vercel) (alternative deployment method)
+
+<Note>
+  For most users, [Vercel deployment](/deployment/vercel) is simpler and includes automatic SSL, CDN, and serverless functions out of the box
+</Note>

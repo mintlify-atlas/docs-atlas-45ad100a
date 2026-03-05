@@ -1,0 +1,186 @@
+---
+title: "Onboarding Wizard"
+description: "Complete the 4-step setup wizard to personalize your Estudio Three experience"
+---
+
+The onboarding wizard helps you set up your profile so Estudio Three can generate optimized daily routines tailored to your academic, athletic, and personal needs.
+
+## Why Complete Onboarding?
+
+The information you provide during onboarding enables the intelligent routine engine to:
+
+- **Generate smart schedules** - Automatically allocate study time based on subject difficulty
+- **Balance cognitive and physical load** - Optimize your daily energy expenditure
+- **Respect your commitments** - Work around classes, training, and events
+- **Personalize your experience** - Adapt to your focus preferences and attention span
+
+<Tip>
+The more accurate your information, the better your routines will be. You can always update your profile later in Settings.
+</Tip>
+
+## The 4-Step Wizard
+
+<Steps>
+  <Step title="Step 1: Personal Information">
+    Provide your basic details to get started.
+    
+    **Required fields:**
+    - **Name** - Must be at least 3 characters
+    - **Age** - Must be 8 years or older
+    
+    The system validates your inputs in real-time and shows helpful error messages if needed.
+    
+    <Note>
+    Your name and age help the system adjust cognitive load expectations and communication style.
+    </Note>
+  </Step>
+
+  <Step title="Step 2: Academic Profile">
+    Define your academic commitments and subjects.
+    
+    **Required information:**
+    - **Academic Level** - Choose from ESO, Bachillerato, Universidad, or FP
+    - **Subjects** - Add all your current subjects with difficulty ratings (1-5)
+    - **Weekly Class Schedule** - Set your school/university hours for Monday-Friday
+    - **Transportation** - Indicate if you need travel time to school
+    
+    **Adding Subjects:**
+    1. Enter the subject name (minimum 3 characters)
+    2. Select difficulty level (1=Easy, 5=Very Hard)
+    3. Click the + button or press Enter
+    4. Repeat for all subjects
+    
+    <Tip>
+    Be honest about difficulty ratings - the routine engine uses these to:
+    - Allocate more study time to harder subjects
+    - Calculate cognitive energy costs
+    - Prioritize study sessions
+    </Tip>
+    
+    **Class Schedule Setup:**
+    - Configure your daily class hours using the schedule rows
+    - Each day can have a start and end time
+    - Leave days blank if you don't have classes
+    - The system automatically blocks these hours in your routine
+  </Step>
+
+  <Step title="Step 3: Activities & Sports">
+    Set up your athletic and extracurricular commitments.
+    
+    **Main Activity (Required):**
+    - Enter your primary sport or physical activity
+    - Select intensity level: Baja, Moderada, Alta, or Muy Alta
+    - Define your weekly training schedule (all 7 days available)
+    - Indicate if you need transportation to training
+    
+    **Secondary Activity (Optional):**
+    - Add a second activity like languages, music, or other hobbies
+    - Configure its weekly schedule separately
+    - This helps the system account for all your commitments
+    
+    <Warning>
+    The routine engine calculates physical load based on your activity intensity. High-intensity activities will reduce the amount of cognitive work scheduled on training days.
+    </Warning>
+  </Step>
+
+  <Step title="Step 4: Daily Habits & Wellness">
+    Fine-tune your daily routine with sleep, meals, and hydration goals.
+    
+    **Sleep Schedule:**
+    - **Wake Time** - When you typically wake up (default: 07:30)
+    - **Bed Time** - When you go to sleep (default: 23:00)
+    - These define the boundaries for your daily routine generation
+    
+    **Meal Schedule:**
+    - **Breakfast** - Default: 07:00
+    - **Lunch** - Default: 15:00
+    - **Dinner** - Default: 22:00
+    - The system uses these as visual anchors in your timeline
+    
+    **Hydration Goal:**
+    - Set your daily water intake target (1000-4000ml)
+    - Default: 2000ml
+    - Track your progress throughout the day
+    
+    <Accordion title="Can I change these settings later?">
+      Yes! All onboarding settings can be updated in your profile settings at any time. Your routine will automatically regenerate based on the new information.
+    </Accordion>
+  </Step>
+</Steps>
+
+## What Happens After Onboarding?
+
+Once you complete the wizard (by clicking "Finish" on Step 4):
+
+1. **Profile Creation** - Your complete user profile is validated and saved
+2. **First Routine Generation** - The routine engine immediately generates your first optimized daily schedule
+3. **Load Calculation** - Total cognitive and physical load is computed
+4. **Backend Sync** - Your profile is saved to the cloud (if signed in)
+5. **Dashboard Redirect** - You're taken to your personalized dashboard
+
+<Note>
+The routine engine uses a sophisticated solver algorithm that:
+- Creates fixed blocks for school, training, and events
+- Identifies free time slots
+- Prioritizes tasks by difficulty and importance  
+- Allocates study time using your focus preferences (Pomodoro by default)
+- Respects the maximum daily energy load (5500 units)
+</Note>
+
+## Tips for Optimal Setup
+
+<Accordion title="Be realistic with your schedule">
+  Don't overcommit! The system will try to fill all available time. Leave some breathing room for spontaneous activities and rest.
+</Accordion>
+
+<Accordion title="Use accurate difficulty ratings">
+  Your subject difficulty ratings directly impact study time allocation. A difficulty 5 subject gets 100 minutes of study time (5 × 20min multiplier) while a difficulty 2 subject gets only 40 minutes.
+</Accordion>
+
+<Accordion title="Account for transportation">
+  If you commute to school or training, check the transportation boxes. The system will add buffer time to your schedule.
+</Accordion>
+
+<Accordion title="Adjust sleep schedule seasonally">
+  Your sleep schedule might change during different seasons or academic periods. Update it in settings when needed.
+</Accordion>
+
+<Accordion title="Start with default focus strategy">
+  The system uses Pomodoro (25min focus / 5min break) by default. Try it for a week before customizing in settings.
+</Accordion>
+
+## Skipping Onboarding
+
+<Warning>
+While you can technically skip onboarding, it's **strongly discouraged**. The routine engine requires your profile data to generate meaningful schedules. Without onboarding:
+- No routines will be generated
+- Dashboard widgets will show empty states
+- You'll need to complete it eventually to use core features
+</Warning>
+
+## Validation Rules
+
+The wizard enforces these validation rules:
+
+| Field | Rule |
+|-------|------|
+| Name | Minimum 3 characters, letters and spaces only |
+| Age | Must be 8 or older |
+| Academic Level | Required selection |
+| Subjects | At least 1 subject required |
+| Subject Name | Minimum 3 characters, alphanumeric |
+| Main Activity | Required, minimum 3 characters |
+| Activity Level | Required selection |
+
+## Next Steps
+
+After completing onboarding:
+
+<CardGroup cols={2}>
+  <Card title="Creating Routines" icon="calendar" href="/guides/creating-routines">
+    Learn how to work with your generated routines
+  </Card>
+  <Card title="Focus Mode" icon="eye" href="/guides/focus-mode">
+    Activate Zen mode for distraction-free work
+  </Card>
+</CardGroup>

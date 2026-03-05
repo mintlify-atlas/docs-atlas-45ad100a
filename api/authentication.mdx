@@ -1,0 +1,396 @@
+---
+title: 'Authentication'
+description: 'Supabase Auth implementation with email, OAuth, and session management'
+---
+
+# Authentication API
+
+Estudio Three uses Supabase Auth for user authentication and session management. All authentication operations are handled through the `useAuthStore` Zustand store.
+
+## Store Location
+
+`src/stores/useAuthStore.ts`
+
+## Data Types
+
+### AuthProfile
+
+```typescript
+interface AuthProfile {
+  id: string;                    // User UUID (matches auth.users.id)
+  email: string;                 // User email
+  username?: string | null;      // Unique username (min 3 chars)
+  full_name: string | null;      // Display name
+  avatar_url: string | null;     // Profile picture URL
+  date_of_birth: string | null;  // ISO date string
+  auth_provider: string;         // 'email', 'google', 'github'
+  has_onboarded: boolean;        // Onboarding completion flag
+  created_at: string;            // ISO timestamp
+}
+```
+
+### SocialProvider
+
+```typescript
+type SocialProvider = 'google' | 'github';
+```
+
+## Authentication Methods
+
+### Initialize Session
+
+Call this on app startup to restore the user's session:
+
+```typescript
+import { useAuthStore } from '@/stores/useAuthStore';
+
+// Initialize authentication
+await useAuthStore.getState().initialize();
+```
+
+**What it does:**
+- Retrieves current session from Supabase
+- Fetches user profile with retry logic (3 attempts)
+- Sets up `onAuthStateChange` listener
+- Handles OAuth profile creation
+
+### Sign Up with Email
+
+<ParamField path="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  Password (Supabase default: minimum 6 characters)
+</ParamField>
+
+<ParamField path="fullName" type="string" required>
+  User's full name for display
+</ParamField>
+
+<ParamField path="username" type="string" required>
+  Unique username (minimum 3 characters)
+</ParamField>
+
+```typescript
+await useAuthStore.getState().signUpWithEmail(
+  'user@example.com',
+  'secure_password',
+  'John Doe',
+  'johndoe'
+);
+```
+
+**Process:**
+1. Validates and sanitizes username
+2. Checks username uniqueness
+3. Creates Supabase auth user
+4. Sends verification email
+5. Sets `needsEmailVerification` flag
+
+**Errors:**
+- `auth.errors.usernameInvalid`: Username doesn't meet requirements
+- `auth.errors.usernameTaken`: Username already exists
+
+### Sign In with Email
+
+<ParamField path="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  User's password
+</ParamField>
+
+```typescript
+await useAuthStore.getState().signInWithEmail(
+  'user@example.com',
+  'secure_password'
+);
+```
+
+**Process:**
+1. Authenticates with Supabase
+2. Checks email verification status
+3. Forces sign-out if email not verified
+4. Fetches user profile
+
+**Errors:**
+- `auth.errors.verifyEmail`: Email not verified (user signed out)
+
+### Sign In with Username or Email
+
+<ParamField path="login" type="string" required>
+  Email address or username
+</ParamField>
+
+<ParamField path="password" type="string" required>
+  User's password
+</ParamField>
+
+```typescript
+await useAuthStore.getState().signInWithEmailOrUsername(
+  'johndoe',  // Can also be 'user@example.com'
+  'secure_password'
+);
+```
+
+**Process:**
+1. Detects if login is email (contains '@') or username
+2. If username, queries `profiles` table for email
+3. Proceeds with email-based authentication
+
+**Errors:**
+- `auth.errors.userNotFound`: Username doesn't exist
+
+### OAuth Sign In
+
+<ParamField path="provider" type="SocialProvider" required>
+  OAuth provider: 'google' or 'github'
+</ParamField>
+
+```typescript
+await useAuthStore.getState().signInWithProvider('google');
+```
+
+**Configuration:**
+- **Google**: Requests offline access with consent prompt
+- **Redirect URL**: Returns to app origin (`window.location.origin`)
+- **Profile Creation**: Automatically creates profile from OAuth metadata
+
+**OAuth Profile Mapping:**
+
+```typescript
+{
+  full_name: meta.full_name || meta.name || meta.user_name,
+  avatar_url: meta.avatar_url || meta.picture,
+  username: meta.preferred_username || meta.user_name,
+  auth_provider: user.app_metadata.provider
+}
+```
+
+### Sign Out
+
+```typescript
+await useAuthStore.getState().signOut();
+```
+
+Clears session and resets store state.
+
+## Password Management
+
+### Reset Password Request
+
+<ParamField path="email" type="string" required>
+  User's email address
+</ParamField>
+
+```typescript
+await useAuthStore.getState().resetPassword('user@example.com');
+```
+
+**Process:**
+1. Sends password reset email
+2. Sets `emailSent` flag
+3. Redirect URL: `/auth/reset-password`
+
+### Update Password
+
+<ParamField path="newPassword" type="string" required>
+  New password (minimum 6 characters)
+</ParamField>
+
+```typescript
+await useAuthStore.getState().updatePassword('new_secure_password');
+```
+
+## Profile Management
+
+### Update Profile
+
+<ParamField path="updates" type="Partial<AuthProfile>" required>
+  Fields to update
+</ParamField>
+
+```typescript
+await useAuthStore.getState().updateProfile({
+  full_name: 'Jane Doe',
+  username: 'janedoe',
+  avatar_url: 'https://example.com/avatar.jpg'
+});
+```
+
+**Username Validation:**
+- Sanitized before saving
+- Uniqueness checked (excluding current user)
+- Error thrown if username taken
+
+### Update Date of Birth
+
+<ParamField path="date" type="string" required>
+  ISO date string (YYYY-MM-DD)
+</ParamField>
+
+```typescript
+await useAuthStore.getState().updateDateOfBirth('2000-01-15');
+```
+
+## Email Verification
+
+### Resend Verification Email
+
+```typescript
+await useAuthStore.getState().resendVerificationEmail();
+```
+
+**Requirements:**
+- User must be signed in
+- Sets `emailSent` flag on success
+
+### Check Verification Status
+
+```typescript
+const { needsEmailVerification } = useAuthStore.getState();
+```
+
+## Store State
+
+### Access Current User
+
+```typescript
+const { user, profile, isLoading, error } = useAuthStore();
+
+if (user) {
+  console.log('Authenticated:', user.email);
+  console.log('Profile:', profile);
+}
+```
+
+### Store Fields
+
+<ResponseField name="user" type="User | null">
+  Supabase auth user object
+</ResponseField>
+
+<ResponseField name="profile" type="AuthProfile | null">
+  Extended user profile from database
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  Loading state for async operations
+</ResponseField>
+
+<ResponseField name="error" type="string | null">
+  Error message from last operation
+</ResponseField>
+
+<ResponseField name="emailSent" type="boolean">
+  Flag indicating verification/reset email sent
+</ResponseField>
+
+<ResponseField name="needsEmailVerification" type="boolean">
+  True if user email not confirmed
+</ResponseField>
+
+## Session Persistence
+
+The auth store is persisted to localStorage:
+
+```typescript
+{
+  name: 'auth-storage',
+  storage: localStorage,
+  partialize: (state) => ({ 
+    user: state.user, 
+    profile: state.profile 
+  })
+}
+```
+
+**Note:** Only `user` and `profile` are persisted. Flags like `isLoading` and `error` are reset on page load.
+
+## Row Level Security
+
+The `profiles` table has these RLS policies:
+
+```sql
+-- Anyone can view profiles (for social features)
+CREATE POLICY "Perfiles públicos visibles por todos" 
+  ON profiles FOR SELECT 
+  USING (true);
+
+-- Users can insert their own profile
+CREATE POLICY "Usuarios pueden insertar su perfil" 
+  ON profiles FOR INSERT 
+  WITH CHECK (auth.uid() = id);
+
+-- Users can update their own profile
+CREATE POLICY "Usuarios pueden actualizar su perfil" 
+  ON profiles FOR UPDATE 
+  USING (auth.uid() = id);
+```
+
+## Auto-Logout Feature
+
+If session becomes invalid (e.g., expired token), the store automatically:
+1. Clears persisted state
+2. Sets `user` and `profile` to `null`
+3. Redirects user to login (handled by route guards)
+
+## Error Handling
+
+### Clear Error State
+
+```typescript
+useAuthStore.getState().clearError();
+```
+
+### Clear Email Sent Flag
+
+```typescript
+useAuthStore.getState().clearEmailSent();
+```
+
+## Example: Protected Route
+
+```typescript
+import { useAuthStore } from '@/stores/useAuthStore';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+function ProtectedPage() {
+  const { user, profile } = useAuthStore();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/auth/signin');
+    }
+  }, [user, navigate]);
+
+  if (!profile?.has_onboarded) {
+    return <div>Complete onboarding first</div>;
+  }
+
+  return <div>Welcome, {profile.full_name}!</div>;
+}
+```
+
+## Database Schema
+
+From `/home/daytona/workspace/source/supabase/schema.sql:30`:
+
+```sql
+create table profiles (
+  id uuid references auth.users not null primary key,
+  updated_at timestamp with time zone,
+  username text unique,
+  full_name text,
+  avatar_url text,
+  website text,
+  sport_info jsonb default '{}'::jsonb,
+  preferences jsonb default '{}'::jsonb,
+  has_onboarded boolean default false,
+  constraint username_length check (char_length(username) >= 3)
+);
+```

@@ -1,0 +1,428 @@
+---
+title: Vercel Deployment
+description: Deploy Estudio Three to Vercel with automatic SSL, CDN, and serverless functions
+---
+
+Vercel is the recommended deployment platform for Estudio Three, offering seamless integration with React (Vite), automatic SSL certificates, global CDN, and built-in support for serverless functions.
+
+## Why Vercel?
+
+- **Zero configuration**: Optimized for Vite and React out of the box
+- **Serverless functions**: Native support for `/api` routes (used for AI coaching)
+- **Automatic deployments**: Git integration with preview deployments for PRs
+- **Global CDN**: Fast content delivery worldwide
+- **Free tier**: Generous limits for personal projects
+- **Custom domains**: Easy setup with automatic SSL
+
+## Prerequisites
+
+- A GitHub, GitLab, or Bitbucket account
+- Estudio Three repository pushed to your Git provider
+- [Supabase project configured](/deployment/supabase-setup)
+- [Environment variables ready](/deployment/environment-variables)
+
+## Deployment Steps
+
+<Steps>
+  <Step title="Sign up for Vercel">
+    Go to [vercel.com](https://vercel.com) and sign up using your Git provider
+  </Step>
+  
+  <Step title="Import repository">
+    - Click **Add New** → **Project**
+    - Select your Git provider
+    - Find and select your Estudio Three repository
+    - Click **Import**
+  </Step>
+  
+  <Step title="Configure project">
+    Vercel auto-detects Vite configuration:
+    
+    - **Framework Preset**: Vite
+    - **Build Command**: `npm run build`
+    - **Output Directory**: `dist`
+    - **Install Command**: `npm install`
+    
+    <Note>
+      You typically don't need to change these settings
+    </Note>
+  </Step>
+  
+  <Step title="Add environment variables">
+    Click **Environment Variables** and add:
+    
+    | Name | Value | Environment |
+    |------|-------|-------------|
+    | `GROQ_API_KEY` | `gsk_xxxxxxxxxxxx` | Production, Preview |
+    | `VITE_SUPABASE_URL` | `https://your-project.supabase.co` | Production, Preview, Development |
+    | `VITE_SUPABASE_ANON_KEY` | `eyJxxxxxxxxxxxx` | Production, Preview, Development |
+    | `VITE_APP_URL` | `https://your-domain.vercel.app` | Production |
+    | `VITE_APP_URL` | `https://$VERCEL_URL` | Preview |
+    | `NODE_ENV` | `production` | Production |
+    
+    <Warning>
+      For `VITE_APP_URL` in Preview environment, use `https://$VERCEL_URL` to automatically use the preview deployment URL
+    </Warning>
+  </Step>
+  
+  <Step title="Deploy">
+    Click **Deploy**
+    
+    Vercel will:
+    1. Clone your repository
+    2. Install dependencies
+    3. Build the application
+    4. Deploy to a production URL
+    
+    Initial deployment takes 2-4 minutes.
+  </Step>
+  
+  <Step title="Access your application">
+    Once deployed, you'll receive a URL like:
+    ```
+    https://estudio-three.vercel.app
+    ```
+    
+    Click **Visit** to open your deployed application
+  </Step>
+</Steps>
+
+## Serverless Functions
+
+Estudio Three uses Vercel serverless functions for the AI coaching feature.
+
+### Configuration (vercel.json)
+
+The `vercel.json` file configures routing and function settings:
+
+```json
+{
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ],
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 30
+    }
+  }
+}
+```
+
+**Key settings:**
+- **Rewrites**: Routes `/api/*` requests to serverless functions
+- **maxDuration**: Allows up to 30 seconds for AI responses (Groq API calls)
+
+<Note>
+  The `api/` directory in your project contains serverless function handlers that run on Vercel's edge network
+</Note>
+
+### Function Limits
+
+| Plan | Max Duration | Concurrent Executions | Memory |
+|------|--------------|----------------------|--------|
+| Hobby (Free) | 10s | 10 | 1024 MB |
+| Pro | 60s | 100 | 3008 MB |
+
+<Warning>
+  If your AI responses take longer than 10s on the free tier, consider upgrading to Pro or optimizing prompts
+</Warning>
+
+## Custom Domains
+
+<Steps>
+  <Step title="Add domain in Vercel">
+    - Go to your project **Settings** → **Domains**
+    - Enter your custom domain (e.g., `estudio.yourdomain.com`)
+    - Click **Add**
+  </Step>
+  
+  <Step title="Configure DNS">
+    Vercel will provide DNS configuration:
+    
+    **For subdomain (recommended):**
+    ```
+    Type: CNAME
+    Name: estudio
+    Value: cname.vercel-dns.com
+    ```
+    
+    **For apex domain:**
+    ```
+    Type: A
+    Name: @
+    Value: 76.76.21.21
+    ```
+  </Step>
+  
+  <Step title="Wait for DNS propagation">
+    DNS changes take 5 minutes to 48 hours depending on your provider
+  </Step>
+  
+  <Step title="Update VITE_APP_URL">
+    Go to **Settings** → **Environment Variables**
+    
+    Update `VITE_APP_URL` to your custom domain:
+    ```
+    VITE_APP_URL=https://estudio.yourdomain.com
+    ```
+    
+    Then **redeploy** the application
+  </Step>
+  
+  <Step title="Update Supabase redirect URLs">
+    In Supabase Dashboard:
+    - Go to **Authentication** → **URL Configuration**
+    - Add your custom domain to **Site URL** and **Redirect URLs**
+  </Step>
+</Steps>
+
+<Note>
+  Vercel automatically provisions SSL certificates for custom domains using Let's Encrypt
+</Note>
+
+## CI/CD with GitHub
+
+Vercel automatically creates deployments for Git events:
+
+### Automatic Deployments
+
+| Event | Deployment Type | URL |
+|-------|----------------|-----|
+| Push to `main` | Production | `https://estudio.vercel.app` |
+| Push to other branch | Preview | `https://estudio-git-feature.vercel.app` |
+| Pull request | Preview | Unique URL per PR |
+
+### Preview Deployments
+
+Every pull request gets a unique preview URL:
+
+```
+https://estudio-pr-123.vercel.app
+```
+
+**Benefits:**
+- Test changes before merging
+- Share with team for review
+- Automatic comments on GitHub PRs with preview link
+
+### Branch Deployments
+
+You can configure specific branches for production:
+
+<Steps>
+  <Step title="Go to project settings">
+    **Settings** → **Git**
+  </Step>
+  
+  <Step title="Change production branch">
+    Set **Production Branch** to your preferred branch (e.g., `production` instead of `main`)
+  </Step>
+</Steps>
+
+## Environment Variables Management
+
+### Updating Variables
+
+<Steps>
+  <Step title="Navigate to settings">
+    Project → **Settings** → **Environment Variables**
+  </Step>
+  
+  <Step title="Edit or add variables">
+    Click **Edit** next to a variable, or **Add New**
+  </Step>
+  
+  <Step title="Select environment">
+    Choose which environments use this variable:
+    - **Production**: Live site
+    - **Preview**: Pull request previews
+    - **Development**: Local development (via `vercel env pull`)
+  </Step>
+  
+  <Step title="Redeploy">
+    Changes to environment variables require redeployment:
+    - Go to **Deployments**
+    - Click **⋯** on latest deployment → **Redeploy**
+  </Step>
+</Steps>
+
+<Warning>
+  Changing `VITE_` environment variables requires rebuilding since they're embedded at build time
+</Warning>
+
+### Environment Variable Precedence
+
+1. **Vercel Dashboard**: Highest priority
+2. **vercel.json**: Configuration file (not recommended for secrets)
+3. **Local .env**: Only for local development
+
+### Pulling Environment Variables Locally
+
+```bash
+# Link project to Vercel
+vercel link
+
+# Pull environment variables
+vercel env pull
+
+# This creates .env.local with production variables
+```
+
+## Performance Optimization
+
+### Edge Network
+
+Vercel deploys your application to a global Edge Network:
+
+- **50+ global regions**: Content served from nearest location
+- **Automatic caching**: Static assets cached at the edge
+- **Brotli compression**: Automatic compression for faster loads
+
+### Build Optimization
+
+<Steps>
+  <Step title="Enable build cache">
+    Vercel automatically caches `node_modules` and build outputs between deployments
+  </Step>
+  
+  <Step title="Optimize bundle size">
+    Monitor bundle size in deployment logs:
+    ```
+    dist/assets/index-abc123.js  250.42 kB
+    dist/assets/vendor-xyz789.js  180.13 kB
+    ```
+  </Step>
+  
+  <Step title="Use lazy loading">
+    Vite automatically code-splits routes. Check the generated chunks in build output.
+  </Step>
+</Steps>
+
+### Monitoring
+
+<Steps>
+  <Step title="View analytics">
+    Go to **Analytics** tab to see:
+    - Page views
+    - Top pages
+    - Visitor geography
+    - Performance metrics
+  </Step>
+  
+  <Step title="Check function logs">
+    **Functions** tab shows:
+    - Invocation count
+    - Errors
+    - Duration
+    - Logs from serverless functions
+  </Step>
+  
+  <Step title="Monitor build times">
+    Each deployment shows:
+    - Build duration
+    - Bundle sizes
+    - Errors and warnings
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### Build fails with "Command failed"
+
+**Problem**: `npm run build` fails during deployment
+
+**Solution**: Check build logs in Vercel dashboard:
+- Missing environment variables
+- TypeScript errors
+- Dependency installation failures
+
+Test locally:
+```bash
+npm run build
+```
+
+### "Serverless Function has crashed"
+
+**Problem**: API routes return 500 errors
+
+**Solution**:
+1. Check **Functions** tab for error logs
+2. Verify `GROQ_API_KEY` is set correctly
+3. Ensure function doesn't exceed timeout (10s on free tier)
+
+### OAuth redirect mismatch
+
+**Problem**: Authentication fails with redirect error
+
+**Solution**:
+1. Update `VITE_APP_URL` to match your Vercel URL
+2. Add URL to Supabase **Authentication** → **URL Configuration**:
+   ```
+   https://your-project.vercel.app
+   ```
+3. Redeploy after changing `VITE_APP_URL`
+
+### Preview deployments using wrong environment
+
+**Problem**: Preview deployments connect to production database
+
+**Solution**: Create separate Supabase project for staging:
+```
+Production Environment:
+  VITE_SUPABASE_URL=https://prod.supabase.co
+  VITE_APP_URL=https://estudio.vercel.app
+
+Preview Environment:
+  VITE_SUPABASE_URL=https://staging.supabase.co
+  VITE_APP_URL=https://$VERCEL_URL
+```
+
+### "This Serverless Function has exceeded the uncompressed maximum size"
+
+**Problem**: Serverless function bundle too large (>250MB uncompressed)
+
+**Solution**:
+- Reduce dependencies in `api/` functions
+- Use external APIs instead of bundling heavy libraries
+- Consider upgrading to Pro plan (50MB limit → 250MB limit)
+
+## Cost Considerations
+
+### Hobby Plan (Free)
+
+- ✅ Unlimited deployments
+- ✅ 100 GB bandwidth/month
+- ✅ 100 GB-Hrs serverless function execution
+- ✅ SSL certificates
+- ⚠️ 10s max function duration
+- ⚠️ Commercial use not allowed
+
+### Pro Plan ($20/month)
+
+- ✅ 1 TB bandwidth/month
+- ✅ 1000 GB-Hrs serverless function execution
+- ✅ 60s max function duration
+- ✅ Commercial use allowed
+- ✅ Custom deployment protection
+- ✅ Advanced analytics
+
+<Note>
+  Most personal projects and MVPs work well on the Hobby plan. Upgrade when you need longer function timeouts or commercial usage.
+</Note>
+
+## Next Steps
+
+After deploying to Vercel:
+
+1. ✅ [Configure environment variables](/deployment/environment-variables)
+2. ✅ [Set up Supabase](/deployment/supabase-setup)
+3. ✅ Test authentication and AI coaching features
+4. ✅ Add custom domain (optional)
+5. ✅ Set up monitoring and alerts
+
+<Note>
+  For on-premise deployments or full control, see [Docker deployment](/deployment/docker)
+</Note>

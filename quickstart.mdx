@@ -1,80 +1,209 @@
 ---
 title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+description: "Get started with Routine Optimizer in 5 minutes"
 ---
 
-## Get started in three steps
+Routine Optimizer is a PWA designed to help student-athletes balance their academic and athletic commitments. This guide will get you up and running quickly.
 
-Get your documentation site running locally and make your first customization.
+## Access the App
 
-### Step 1: Set up your local environment
+The fastest way to start is to access the live application. Routine Optimizer is a Progressive Web App, so you can use it directly in your browser or install it on your device.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+<Steps>
+  <Step title="Open the application">
+    Navigate to the deployed application URL in your web browser. We recommend using Chrome, Safari, or Edge for the best experience.
+  </Step>
 
-### Step 2: Deploy your changes
+  <Step title="Create your account">
+    Click **Sign Up** and register with your email or use social login (Google/GitHub).
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    <CodeGroup>
+    ```typescript Email Registration
+    // The app validates your credentials securely
+    - Email must be valid format
+    - Password must be at least 6 characters
+    - Username must be at least 3 characters
+    ```
+    </CodeGroup>
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    <Note>
+      After registration, check your email for a verification link to activate your account.
+    </Note>
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Complete onboarding (4 steps)">
+    The onboarding wizard will guide you through initial setup:
 
-### Step 3: Go live
+    **Step 1: Personal Information**
+    - Your name and age
+    - Main sport and competitive level (Amateur/Professional)
+    - Academic level (High School, University, etc.)
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+    **Step 2: Academic Setup**
+    - Add your subjects/courses
+    - Rate difficulty level (1-5) for each subject
+    - Configure your class schedule
 
-## Next steps
+    <Tip>
+      Difficulty ratings are crucial! The smart routine engine uses these to schedule demanding subjects during your peak cognitive hours.
+    </Tip>
 
-Now that you have your docs running, explore these key features:
+    **Step 3: Activities & Schedule**
+    - Set training schedule and intensity
+    - Configure sleep times (wake up and bedtime)
+    - Set meal times (breakfast, lunch, dinner)
 
-<CardGroup cols={2}>
+    **Step 4: Review & Confirm**
+    - Review your complete profile
+    - Generate your first intelligent routine
 
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
+    <Warning>
+      Be honest with your sleep and training intensity. The AI Coach needs accurate data to prevent burnout.
+    </Warning>
+  </Step>
 
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
+  <Step title="Explore your dashboard">
+    After onboarding, you'll land on the Dashboard with:
+    - **Daily Timeline**: Your day divided into smart blocks (Study, Training, Rest)
+    - **Load Metrics**: Cognitive and Physical load indicators
+    - **Quick Actions**: Create tasks, start Pomodoro, view calendar
+    - **AI Coach**: Your personal assistant powered by Llama 3
+  </Step>
+</Steps>
 
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
+## Create Your First Task
 
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
+Now let's create a task and work on it with the Pomodoro timer.
 
+<Steps>
+  <Step title="Add a task">
+    1. Navigate to the **Tasks** section from the sidebar
+    2. Click **New Task** button
+    3. Fill in the details:
+       - Title (e.g., "Complete Math Assignment")
+       - Due date
+       - Priority level (Low/Medium/High)
+       - Link to a subject (optional)
+       - Estimated Pomodoros needed
+
+    <CodeGroup>
+    ```typescript Task Properties
+    {
+      title: "Complete Math Assignment",
+      status: "pending",
+      priority: "high",
+      dueDate: "2026-03-10",
+      estimatedPomodoros: 4,
+      subjectId: "calculus-101"
+    }
+    ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Start working with Pomodoro">
+    1. Go to the **Pomodoro** page
+    2. Select your task from the dropdown
+    3. Click **Start** to begin a 25-minute focus session
+    4. Work until the timer completes
+    5. Take a 5-minute break when prompted
+
+    <Note>
+      The Pomodoro timer integrates with your tasks to track actual time spent. After 4 Pomodoros, you get a longer 15-minute break.
+    </Note>
+  </Step>
+
+  <Step title="Use Focus Mode (optional)">
+    For deeper concentration, activate **Focus Mode** (Zen):
+    - Click the Focus Mode icon in the navigation
+    - Enjoy an immersive full-screen experience
+    - Use the procedural ambient sound generator (pink, white, or brown noise)
+    - Exit by pressing ESC or clicking the close button
+  </Step>
+</Steps>
+
+## Talk to Your AI Coach
+
+The AI Coach understands your specific context and can help you make better decisions.
+
+<Steps>
+  <Step title="Open AI Coach">
+    Click the **AI Coach** icon in the navigation or from the dashboard.
+  </Step>
+
+  <Step title="Ask questions">
+    Try these example questions:
+
+    - "Should I study high-difficulty subjects after intense training?"
+    - "I have an exam on Friday. How should I organize my week?"
+    - "I'm feeling exhausted today. What do you recommend?"
+    - "How can I improve my study-training balance?"
+
+    <Tip>
+      The AI Coach analyzes your fatigue levels, schedule, and upcoming deadlines to provide personalized recommendations.
+    </Tip>
+  </Step>
+
+  <Step title="Use quick action chips">
+    The AI Coach interface includes quick action chips for common requests:
+    - Request weekly planning
+    - Ask for motivation
+    - Get recovery tips
+    - Optimize study schedule
+  </Step>
+</Steps>
+
+## Install as Native App (Optional)
+
+For the best experience, install Routine Optimizer as a native app on your device.
+
+<CardGroup cols={3}>
+  <Card title="iOS (iPhone/iPad)" icon="apple">
+    1. Open in **Safari**
+    2. Tap the **Share** button
+    3. Select **Add to Home Screen**
+    4. Confirm
+  </Card>
+
+  <Card title="Android" icon="android">
+    1. Open in **Chrome**
+    2. Tap the **menu** (3 dots)
+    3. Select **Install app**
+    4. Confirm
+  </Card>
+
+  <Card title="Desktop" icon="desktop">
+    1. Open in **Chrome** or **Edge**
+    2. Click the **install icon** in the address bar
+    3. Confirm installation
+  </Card>
 </CardGroup>
 
 <Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
+  Once installed, the app works offline and sends you notifications for Pomodoro sessions and upcoming events.
 </Note>
+
+## Next Steps
+
+Now that you're set up, explore these powerful features:
+
+<CardGroup cols={2}>
+  <Card title="Smart Routines" icon="brain" href="/features/smart-routines">
+    Learn how the intelligent routine engine balances your cognitive and physical load.
+  </Card>
+
+  <Card title="Academic Tracking" icon="graduation-cap" href="/features/academic-tracking">
+    Manage subjects, grades, and study resources.
+  </Card>
+
+  <Card title="Habits & Goals" icon="target" href="/features/habits-goals">
+    Build streaks and track long-term objectives.
+  </Card>
+
+  <Card title="Calendar Events" icon="calendar" href="/guides/calendar-events">
+    Schedule exams, matches, and important deadlines.
+  </Card>
+</CardGroup>
+
+<Warning>
+  **Having issues?** Check the [installation guide](/installation) for troubleshooting tips or reach out to support.
+</Warning>

@@ -1,0 +1,351 @@
+---
+title: Supabase Setup
+description: Configure Supabase database for Estudio Three application
+---
+
+Estudio Three uses Supabase as its PostgreSQL database with built-in authentication and real-time features. This guide walks you through setting up your Supabase project.
+
+## Prerequisites
+
+- A Supabase account (free tier available)
+- The `supabase/schema.sql` file from the project
+
+## Creating a Supabase Project
+
+<Steps>
+  <Step title="Sign up for Supabase">
+    Go to [supabase.com](https://supabase.com) and create a free account
+  </Step>
+  
+  <Step title="Create new project">
+    - Click "New Project"
+    - Choose your organization
+    - Enter a project name (e.g., "estudio-three")
+    - Set a strong database password (save this securely)
+    - Select a region close to your users
+    - Click "Create new project"
+  </Step>
+  
+  <Step title="Wait for provisioning">
+    Project setup takes 2-3 minutes. You'll see a progress indicator.
+  </Step>
+</Steps>
+
+## Running the Database Schema
+
+The `schema.sql` file creates all necessary tables, enums, policies, and triggers.
+
+<Steps>
+  <Step title="Navigate to SQL Editor">
+    In your Supabase dashboard, click **SQL Editor** in the left sidebar
+  </Step>
+  
+  <Step title="Create new query">
+    Click **New Query** button
+  </Step>
+  
+  <Step title="Paste schema content">
+    Copy the entire contents of `supabase/schema.sql` and paste into the editor
+  </Step>
+  
+  <Step title="Execute the schema">
+    Click **Run** or press `Ctrl/Cmd + Enter`
+    
+    <Note>
+      The schema includes safety checks for existing objects. It's safe to run multiple times.
+    </Note>
+  </Step>
+  
+  <Step title="Verify tables created">
+    Click **Table Editor** in the sidebar. You should see tables like:
+    - `profiles`
+    - `subjects`
+    - `tasks`
+    - `events`
+    - `focus_sessions`
+    - `grades`
+    - And many more...
+  </Step>
+</Steps>
+
+## Database Structure
+
+The schema creates a comprehensive academic optimization system:
+
+### Core Tables
+
+| Table | Purpose |
+|-------|----------|
+| `profiles` | User profiles and settings |
+| `subjects` | Academic subjects with difficulty ratings |
+| `tasks` | To-do items with Pomodoro tracking |
+| `subtasks` | Checklist items within tasks |
+| `events` | Calendar events (exams, matches, appointments) |
+| `weekly_schedule` | Recurring weekly commitments |
+| `grades` | Academic grades and scores |
+| `goals` | Long-term objectives |
+| `focus_sessions` | Pomodoro timer sessions |
+| `routines` | Daily routine plans |
+| `routine_blocks` | Time blocks within routines |
+| `daily_feedback` | Daily reflection and metrics |
+| `chat_history` | AI coach conversation history |
+| `habits` | Habit tracking |
+| `habit_logs` | Daily habit completion logs |
+| `achievements` | Gamification achievements |
+| `user_achievements` | Unlocked achievements per user |
+| `translations` | Dynamic i18n translations |
+
+### Enums (Type Safety)
+
+The schema defines several enum types for data integrity:
+
+```sql
+task_status: 'pending', 'in_progress', 'completed'
+task_priority: 'low', 'medium', 'high', 'urgent'
+session_mode: 'focus', 'short_break', 'long_break'
+routine_block_type: 'FIXED', 'FLEXIBLE', 'BUFFER'
+goal_type: 'academic', 'sport', 'personal', 'health'
+event_type: 'exam', 'match', 'training', 'class', 'other', 'holiday'
+weekday: 'monday', 'tuesday', ..., 'sunday'
+```
+
+## Row Level Security (RLS)
+
+All tables have Row Level Security enabled to protect user data.
+
+<Warning>
+  RLS policies ensure users can only access their own data. Never disable RLS in production!
+</Warning>
+
+### Example Policy (Tasks Table)
+
+```sql
+-- Users can only manage their own tasks
+create policy "Usuarios gestionan sus tareas" 
+  on tasks for all 
+  using ( auth.uid() = user_id );
+```
+
+Each user is isolated through policies that check `auth.uid() = user_id`.
+
+## Authentication Setup
+
+<Steps>
+  <Step title="Navigate to Authentication">
+    Click **Authentication** in the Supabase sidebar
+  </Step>
+  
+  <Step title="Configure email authentication">
+    Email authentication is enabled by default. You can customize:
+    - Email templates
+    - Confirmation requirements
+    - Password policies
+  </Step>
+  
+  <Step title="Enable OAuth providers (optional)">
+    Go to **Authentication → Providers**:
+    
+    **For Google OAuth:**
+    - Enable Google provider
+    - Add your Google OAuth credentials
+    - Set authorized redirect URLs to your `VITE_APP_URL`
+  </Step>
+  
+  <Step title="Configure redirect URLs">
+    Go to **Authentication → URL Configuration**:
+    
+    Add your site URL:
+    ```
+    http://localhost:5173  (development)
+    https://yourdomain.com (production)
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  The schema includes a trigger that automatically creates a profile with default subjects when a user signs up
+</Note>
+
+## Automatic User Initialization
+
+When a new user signs up, the `handle_new_user()` trigger automatically:
+
+1. **Creates a profile** with user metadata
+2. **Adds default subjects**:
+   - Matemáticas (Difficulty: 4)
+   - Lengua y Literatura (Difficulty: 3)
+   - Historia (Difficulty: 3)
+   - Inglés (Difficulty: 3)
+   - Ciencias / Física (Difficulty: 5)
+3. **Creates an initial goal**: "Completar mi primera semana de rutina"
+
+## Getting API Credentials
+
+<Steps>
+  <Step title="Open Project Settings">
+    Click the **Settings** gear icon → **API**
+  </Step>
+  
+  <Step title="Copy Project URL">
+    Find **Project URL** and copy to `VITE_SUPABASE_URL`
+    
+    ```
+    https://your-project.supabase.co
+    ```
+  </Step>
+  
+  <Step title="Copy anon/public key">
+    Find **Project API keys** → **anon public** and copy to `VITE_SUPABASE_ANON_KEY`
+    
+    ```
+    eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    ```
+  </Step>
+  
+  <Step title="Save service_role key (optional)">
+    The `service_role` key bypasses RLS. Only use server-side for admin operations.
+    
+    <Warning>
+      Never expose the service_role key in client code!
+    </Warning>
+  </Step>
+</Steps>
+
+## Seeding Achievement Data
+
+The schema includes an `achievements` table for gamification. You may want to seed it with initial achievements:
+
+```sql
+INSERT INTO achievements (id, title, description, xp_reward, icon) VALUES
+  ('first_task', 'Primera Tarea', 'Completa tu primera tarea', 50, '✅'),
+  ('focus_master', 'Maestro del Enfoque', 'Completa 10 sesiones Pomodoro', 100, '🎯'),
+  ('week_streak', 'Racha Semanal', 'Mantén una racha de 7 días', 200, '🔥'),
+  ('perfect_routine', 'Rutina Perfecta', 'Completa todos los bloques de un día', 150, '⭐');
+```
+
+## Database Functions (RPCs)
+
+The schema includes several PostgreSQL functions:
+
+### increment_task_pomodoros()
+
+```sql
+SELECT increment_task_pomodoros('task-uuid-here');
+```
+
+Safely increments the `pomodoros_completed` counter without race conditions.
+
+### get_weekly_summary()
+
+```sql
+SELECT * FROM get_weekly_summary();
+```
+
+Returns productivity analytics:
+- Total focus minutes
+- Session count
+- Tasks completed
+- Top subject by time spent
+
+## Monitoring and Logs
+
+<Steps>
+  <Step title="View database logs">
+    Click **Database** → **Logs** to see query logs and errors
+  </Step>
+  
+  <Step title="Monitor table activity">
+    Click **Table Editor** → Select a table → **Logs** tab
+  </Step>
+  
+  <Step title="Check authentication logs">
+    Click **Authentication** → **Logs** to see sign-ups and logins
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### "violación de clave foránea" (Foreign Key Violation)
+
+**Problem**: Trying to create tasks before profile exists
+
+**Solution**: Ensure the user completes onboarding. Check if profile exists:
+
+```sql
+SELECT * FROM profiles WHERE id = auth.uid();
+```
+
+### "Type event_type does not exist"
+
+**Problem**: Schema not fully executed
+
+**Solution**: Re-run the entire `schema.sql` file in SQL Editor
+
+### "RLS policy prevents access"
+
+**Problem**: Accessing data without authentication
+
+**Solution**: Ensure user is logged in and `auth.uid()` returns a valid UUID
+
+### Schema updates not applying
+
+**Problem**: Cached schema or migration conflicts
+
+**Solution**:
+
+<Warning>
+  Only use in development! This will delete all data.
+</Warning>
+
+```sql
+-- Uncomment and run the DROP TABLE statements at the top of schema.sql
+DROP TABLE IF EXISTS chat_history CASCADE;
+DROP TABLE IF EXISTS daily_feedback CASCADE;
+-- ... etc
+```
+
+Then re-run the full schema.
+
+## Backup and Recovery
+
+<Steps>
+  <Step title="Enable automatic backups">
+    Supabase Pro plan includes automatic daily backups
+  </Step>
+  
+  <Step title="Manual backup">
+    Go to **Database** → **Backups** → **Create backup**
+  </Step>
+  
+  <Step title="Export data">
+    Use SQL Editor to export data:
+    ```sql
+    COPY tasks TO '/tmp/tasks.csv' CSV HEADER;
+    ```
+  </Step>
+</Steps>
+
+## Performance Optimization
+
+The schema includes indexes on frequently queried columns:
+
+```sql
+-- Example indexes
+CREATE INDEX tasks_user_id_idx ON tasks(user_id);
+CREATE INDEX tasks_status_idx ON tasks(status);
+CREATE INDEX events_start_time_idx ON events(start_time);
+```
+
+These improve query performance for common operations.
+
+## Next Steps
+
+After setting up Supabase:
+
+1. [Configure environment variables](/deployment/environment-variables)
+2. [Deploy to Vercel](/deployment/vercel) or [Docker](/deployment/docker)
+3. Test authentication and data access
+
+<Note>
+  Keep your database password and service_role key in a secure password manager
+</Note>

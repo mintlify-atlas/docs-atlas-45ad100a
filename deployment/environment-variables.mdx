@@ -1,0 +1,252 @@
+---
+title: Environment Variables
+description: Configure environment variables for Estudio Three application
+---
+
+Estudio Three requires specific environment variables to connect to Supabase and AI services. Follow this guide to properly configure your application.
+
+## Environment File Setup
+
+Create a `.env` file in the root of your project based on `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+## Required Variables
+
+### Server-Side Variables
+
+These variables are only accessible on the server and never exposed to the client bundle.
+
+#### GROQ_API_KEY
+
+<Note>
+  **Required** - API key for Groq AI service (Llama 3)
+</Note>
+
+```bash
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxx
+```
+
+- **Purpose**: Enables AI coaching features powered by Groq's LLM
+- **Where to get it**: Create a free account at [console.groq.com](https://console.groq.com/)
+- **Free tier limits**: Groq offers fast access with rate limits on RPM (Requests Per Minute) and daily tokens
+
+<Warning>
+  Never commit your GROQ_API_KEY to version control or expose it in client-side code
+</Warning>
+
+#### PORT
+
+```bash
+PORT=3001
+```
+
+- **Purpose**: Port for serverless/express local environments
+- **Default**: 3001 if not specified
+- **Optional**: Yes
+
+### Client-Side Variables (VITE_)
+
+These variables are embedded into the client bundle at build time and are publicly accessible.
+
+#### VITE_SUPABASE_URL
+
+<Note>
+  **Required** - Your Supabase project URL
+</Note>
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co
+```
+
+- **Purpose**: Database connection URL
+- **Where to get it**: Supabase Dashboard → Project Settings → API → Project URL
+
+#### VITE_SUPABASE_ANON_KEY
+
+<Note>
+  **Required** - Supabase anonymous public key
+</Note>
+
+```bash
+VITE_SUPABASE_ANON_KEY=eyJxxxxxxxxxxxx
+```
+
+- **Purpose**: Public API key for client-side database access
+- **Where to get it**: Supabase Dashboard → Project Settings → API → Project API keys → anon/public
+- **Security**: Protected by Row Level Security (RLS) policies
+
+#### VITE_APP_URL
+
+<Note>
+  **Required** - Application URL for authentication redirects
+</Note>
+
+```bash
+# Development
+VITE_APP_URL=http://localhost:5173
+
+# Production
+VITE_APP_URL=https://yourdomain.com
+```
+
+- **Purpose**: OAuth redirect URL for authentication flows
+- **Development**: Use `http://localhost:5173`
+- **Production**: Use your actual domain
+
+#### NODE_ENV
+
+```bash
+NODE_ENV=development
+```
+
+- **Purpose**: Application environment
+- **Values**: `development` or `production`
+- **Optional**: Yes (defaults to development)
+
+## Complete Example
+
+<CodeGroup>
+
+```bash Development
+# ===== SERVER — never in client bundle =====
+GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxx
+PORT=3001
+
+# ===== SUPABASE — client =====
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJxxxxxxxxxxxx
+
+# ===== APP =====
+VITE_APP_URL=http://localhost:5173
+NODE_ENV=development
+```
+
+```bash Production
+# ===== SERVER — never in client bundle =====
+GROQ_API_KEY=gsk_your_production_key_here
+PORT=3001
+
+# ===== SUPABASE — client =====
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJxxxxxxxxxxxx
+
+# ===== APP =====
+VITE_APP_URL=https://estudio.yourdomain.com
+NODE_ENV=production
+```
+
+</CodeGroup>
+
+## Security Best Practices
+
+<Warning>
+  **Critical Security Rules**
+  
+  - Never commit `.env` files to version control
+  - Add `.env` to your `.gitignore` file
+  - Use different API keys for development and production
+  - Rotate keys immediately if exposed
+  - Only use `VITE_` prefix for variables that must be public
+</Warning>
+
+### Protecting Secrets
+
+1. **Server-only secrets**: Variables without the `VITE_` prefix are only available server-side
+2. **Client secrets**: Any variable with `VITE_` prefix will be embedded in the client bundle
+3. **Row Level Security**: Supabase RLS policies protect your data even with public keys
+
+## Getting API Keys
+
+### Supabase API Keys
+
+<Steps>
+  <Step title="Access Supabase Dashboard">
+    Go to [supabase.com](https://supabase.com) and sign in to your project
+  </Step>
+  
+  <Step title="Navigate to Project Settings">
+    Click your project → Settings (gear icon) → API
+  </Step>
+  
+  <Step title="Copy credentials">
+    - **Project URL**: Copy to `VITE_SUPABASE_URL`
+    - **anon public key**: Copy to `VITE_SUPABASE_ANON_KEY`
+  </Step>
+</Steps>
+
+### Groq API Key
+
+<Steps>
+  <Step title="Create Groq account">
+    Visit [console.groq.com](https://console.groq.com/) and sign up for free
+  </Step>
+  
+  <Step title="Generate API key">
+    Navigate to API Keys section and create a new key
+  </Step>
+  
+  <Step title="Copy to environment">
+    Copy the generated key to `GROQ_API_KEY` in your `.env` file
+  </Step>
+</Steps>
+
+## Verifying Configuration
+
+<Steps>
+  <Step title="Check .env file exists">
+    ```bash
+    ls -la .env
+    ```
+  </Step>
+  
+  <Step title="Verify all required variables are set">
+    Ensure `GROQ_API_KEY`, `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_APP_URL` are present
+  </Step>
+  
+  <Step title="Start development server">
+    ```bash
+    npm run dev
+    ```
+    
+    Check console for any missing environment variable warnings
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+### "AI Coach connection error"
+
+- Verify `GROQ_API_KEY` is set correctly
+- Check if you've exceeded Groq's free tier rate limits
+- Ensure the key hasn't been revoked
+
+### "Supabase connection failed"
+
+- Verify `VITE_SUPABASE_URL` matches your project URL exactly
+- Ensure `VITE_SUPABASE_ANON_KEY` is the anon/public key (not the service_role key)
+- Check that your Supabase project is active
+
+### "OAuth redirect mismatch"
+
+- Verify `VITE_APP_URL` matches the URL you're accessing
+- Update Supabase Authentication settings with the correct redirect URL
+- For production, ensure the domain is correct
+
+### Docker: "Blank screen after build"
+
+<Warning>
+  VITE_ environment variables must be provided during Docker build time, not runtime
+</Warning>
+
+Pass build arguments when building Docker image:
+
+```bash
+docker build \
+  --build-arg VITE_SUPABASE_URL=https://your-project.supabase.co \
+  --build-arg VITE_SUPABASE_ANON_KEY=your_key \
+  --build-arg VITE_APP_URL=https://yourdomain.com \
+  -t estudio:latest .
+```

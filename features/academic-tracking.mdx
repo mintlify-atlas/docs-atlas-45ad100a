@@ -1,0 +1,404 @@
+---
+title: Academic Tracking
+description: Comprehensive grade tracking and performance analytics system for monitoring academic progress across all subjects
+---
+
+# Academic Tracking
+
+Estudio Three's Academic Tracking feature helps student-athletes monitor grades, visualize performance trends, and identify subjects that need more attention—all in one centralized dashboard.
+
+## What It Does
+
+The Academic Tracking system provides a complete view of your academic performance across all subjects, including grade management, GPA calculation, performance charts, and exam scheduling.
+
+<CardGroup cols={2}>
+  <Card title="Subject Management" icon="book-open">
+    Track multiple subjects with custom difficulty ratings and color coding
+  </Card>
+  <Card title="Grade Entry" icon="pencil">
+    Log grades by type (exam, homework, project) with weight percentages
+  </Card>
+  <Card title="Performance Charts" icon="chart-line">
+    Visualize grade trends and identify improvement or decline patterns
+  </Card>
+  <Card title="Weighted Averages" icon="calculator">
+    Automatic GPA calculation with configurable grade category weights
+  </Card>
+</CardGroup>
+
+## Why It Matters
+
+Student-athletes often struggle with academic tracking because:
+- **Multiple subjects** with different grading systems
+- **Varied assessment types** (exams, projects, homework, participation)
+- **Irregular schedules** make it hard to notice gradual declines
+- **Time pressure** during competition season
+- **Need for quick visibility** on which subjects need attention
+
+The Academic Tracking system solves this by:
+- Centralizing all grades in one place
+- Automatically calculating weighted averages
+- Visualizing trends that might not be obvious from raw numbers
+- Alerting you to upcoming exams
+- Informing the Smart Routines engine for better study allocation
+
+## How to Use It
+
+### Adding Your First Subject
+
+1. Navigate to **Academics** page
+2. Click **"+ Add Subject"**
+3. Enter subject details:
+   - **Name**: e.g., "Physics", "English Literature"
+   - **Difficulty**: 1-10 scale (10 = most difficult)
+   - **Next Exam Date**: Optional, for upcoming test tracking
+4. Click **Save**
+
+<Tip>
+Difficulty rating affects how the Smart Routines engine allocates study time. Rate based on YOUR experience with the subject, not its general reputation.
+</Tip>
+
+### Recording Grades
+
+1. Click on any subject card
+2. Click **"+ Add Grade"**
+3. Fill in grade details:
+   - **Type**: Exam, Homework, Project, Quiz, Participation
+   - **Name**: e.g., "Midterm Exam", "Chapter 5 Quiz"
+   - **Score**: Your grade (points or percentage)
+   - **Max Score**: Total possible points
+   - **Weight**: How much this grade counts (default by type)
+   - **Date**: When you received this grade
+4. Click **Save**
+
+Grades automatically calculate as percentages and update the subject average.
+
+### Understanding Grade Weights
+
+Default weight percentages by type:
+- **Exam**: 40%
+- **Project**: 30%
+- **Homework**: 20%
+- **Quiz**: 10%
+- **Participation**: 5%
+
+You can override these on a per-grade basis to match your actual syllabus.
+
+### Reading the Dashboard
+
+The Academics page displays:
+
+#### Performance Overview (Top Cards)
+
+**Global Average**
+- Your overall GPA across all subjects
+- Weighted by credit hours (if configured)
+- Updates in real-time as grades change
+
+**Upcoming Exams**
+- Count of exams in next 7 days
+- Amber warning indicator if > 0
+- Helps prioritize study time
+
+#### Performance Chart
+
+Visual graph showing:
+- **X-axis**: Your subjects
+- **Y-axis**: Current average (0-100%)
+- **Color coding**: Performance level
+  - Green: Above 80%
+  - Yellow: 60-79%
+  - Red: Below 60%
+
+#### Subject Cards
+
+Each subject shows:
+- Subject name and difficulty rating
+- Current weighted average
+- Number of grades recorded
+- Next exam date (if set)
+- Quick actions: Add grade, View details, Edit
+
+## Key Capabilities
+
+### Weighted Average Calculation
+
+The system calculates weighted averages per subject:
+
+```typescript
+function getWeightedAverage(subjectId: string): number | null {
+  const subject = subjects.find(s => s.id === subjectId);
+  if (!subject || subject.grades.length === 0) return null;
+  
+  let totalPoints = 0;
+  let totalWeight = 0;
+  
+  subject.grades.forEach(grade => {
+    const percentage = (grade.score / grade.maxScore) * 100;
+    const weight = grade.weight || getDefaultWeight(grade.type);
+    totalPoints += percentage * weight;
+    totalWeight += weight;
+  });
+  
+  return totalWeight > 0 ? totalPoints / totalWeight : null;
+}
+```
+
+This accounts for different grade types having different importance.
+
+### Global GPA Calculation
+
+Overall GPA averages all subject averages:
+
+```typescript
+function getGlobalAverage(): number | null {
+  const averages = subjects
+    .map(s => getWeightedAverage(s.id))
+    .filter(avg => avg !== null);
+  
+  if (averages.length === 0) return null;
+  
+  return averages.reduce((sum, avg) => sum + avg, 0) / averages.length;
+}
+```
+
+**Note**: This treats all subjects equally. Future versions will support credit-hour weighting.
+
+### Upcoming Exam Detection
+
+The system scans for exams in the next 7 days:
+
+```typescript
+function getUpcomingExams(daysAhead: number = 7): Subject[] {
+  const today = new Date();
+  const futureDate = new Date(today.getTime() + daysAhead * 24 * 60 * 60 * 1000);
+  
+  return subjects.filter(subject => {
+    if (!subject.nextExamDate) return false;
+    const examDate = new Date(subject.nextExamDate);
+    return examDate >= today && examDate <= futureDate;
+  });
+}
+```
+
+Upcoming exams trigger:
+- Dashboard warning indicator
+- Priority boost in Smart Routines
+- AI Coach mentions in study suggestions
+
+### Performance Trend Analysis
+
+The chart component visualizes performance:
+
+**Component**: `src/features/academics/components/PerformanceChart.tsx`
+
+Uses a charting library to display:
+- Bar chart with one bar per subject
+- Height proportional to current average
+- Color gradient based on performance tier
+- Hover tooltip with exact percentage
+
+## Technical Details
+
+### Data Structure
+
+```typescript
+interface Subject {
+  id: string;
+  user_id: string;
+  name: string;
+  difficulty: number;      // 1-10
+  color: string;           // hex color for UI
+  nextExamDate?: string;   // ISO date string
+  createdAt: string;
+  grades: Grade[];
+}
+
+interface Grade {
+  id: string;
+  subject_id: string;
+  type: 'exam' | 'homework' | 'project' | 'quiz' | 'participation';
+  name: string;
+  score: number;
+  maxScore: number;
+  weight: number;          // percentage (0-100)
+  date: string;            // ISO date string
+  notes?: string;
+}
+```
+
+### State Management
+
+**Store**: `src/stores/useAcademicsStore.ts`
+
+Key methods:
+- `fetchSubjects()` - Load from Supabase
+- `addSubject(name, difficulty, nextExamDate)` - Create new subject
+- `updateSubject(id, updates)` - Modify existing subject
+- `deleteSubject(id)` - Remove subject and all its grades
+- `addGrade(subjectId, gradeData)` - Add grade to subject
+- `updateGrade(subjectId, gradeId, updates)` - Modify grade
+- `deleteGrade(subjectId, gradeId)` - Remove grade
+- `getWeightedAverage(subjectId)` - Calculate subject average
+- `getGlobalAverage()` - Calculate overall GPA
+- `getUpcomingExams(days)` - Find upcoming tests
+
+### Components
+
+**AcademicsPage** (`src/features/academics/components/AcademicsPage.tsx:9`)
+- Main dashboard view
+- Performance overview cards
+- Subject grid layout
+- Empty state for new users
+
+**SubjectCard** (`src/features/academics/components/SubjectCard.tsx`)
+- Individual subject display
+- Current average with color indicator
+- Grade count and next exam
+- Quick actions menu
+
+**GradeForm** (`src/features/academics/components/GradeForm.tsx`)
+- Modal form for adding/editing grades
+- Validates score ≤ maxScore
+- Auto-calculates percentage preview
+- Supports both subject and grade modes
+
+**PerformanceChart** (`src/features/academics/components/PerformanceChart.tsx:7`)
+- Visual performance graph
+- Responsive design
+- Color-coded bars
+- Interactive tooltips
+
+### Database Schema
+
+```sql
+subjects (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  name TEXT NOT NULL,
+  difficulty INTEGER CHECK (difficulty BETWEEN 1 AND 10),
+  color TEXT,
+  next_exam_date TEXT,
+  created_at TIMESTAMP DEFAULT now()
+)
+
+grades (
+  id UUID PRIMARY KEY,
+  subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+  type TEXT CHECK (type IN ('exam', 'homework', 'project', 'quiz', 'participation')),
+  name TEXT NOT NULL,
+  score NUMERIC NOT NULL,
+  max_score NUMERIC NOT NULL CHECK (max_score > 0),
+  weight NUMERIC CHECK (weight >= 0 AND weight <= 100),
+  date TEXT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT now()
+)
+```
+
+## Best Practices
+
+<Accordion title="Record Grades Immediately">
+  As soon as you get a grade back:
+  1. Open Estudio Three
+  2. Navigate to Academics
+  3. Add the grade while you remember details
+  
+  This ensures:
+  - Accurate historical data
+  - Real-time average updates
+  - Better trend analysis
+  - No forgotten assignments
+</Accordion>
+
+<Accordion title="Use Correct Weights">
+  Match weights to your actual syllabus:
+  - Check your course syllabus for grading breakdown
+  - Ask teacher if unclear
+  - Update weights as needed throughout semester
+  - Consistency matters more than perfection
+</Accordion>
+
+<Accordion title="Set Exam Dates Early">
+  As soon as you know an exam date:
+  - Update the subject's nextExamDate
+  - This triggers Smart Routines to allocate more study time
+  - Update after each exam to next one
+  - Use recurring events in calendar for quiz schedules
+</Accordion>
+
+<Accordion title="Review Trends Weekly">
+  Every Sunday (or your review day):
+  - Check performance chart
+  - Identify declining subjects
+  - Adjust study time allocation
+  - Celebrate improvements
+  - Set goals for coming week
+</Accordion>
+
+## Integration with Other Features
+
+- **Smart Routines**: Subject difficulty and averages determine study time allocation
+- **Task Management**: Create study tasks linked to specific subjects
+- **AI Coach**: Can see your grades and suggest targeted study strategies
+- **Calendar**: Exam dates sync to calendar for visual scheduling
+- **Achievements**: Unlock badges for maintaining high GPAs or improvement streaks
+
+## Analytics & Insights
+
+### Available Metrics
+
+<CardGroup cols={2}>
+  <Card title="Grade Distribution" icon="chart-pie">
+    See percentage of grades by type (exams vs homework)
+  </Card>
+  <Card title="Improvement Rate" icon="trending-up">
+    Track if averages are rising or falling over time
+  </Card>
+  <Card title="Subject Comparison" icon="scale-balanced">
+    Identify your strongest and weakest subjects
+  </Card>
+  <Card title="Correlation Analysis" icon="link">
+    Study time vs grade correlation (future feature)
+  </Card>
+</CardGroup>
+
+### Future Analytics
+
+Planned enhancements:
+- Grade prediction based on current trajectory
+- Study time effectiveness per subject
+- Optimal study time calculation
+- Exam score prediction
+- Peer comparison (anonymous, opt-in)
+
+## Common Workflows
+
+<Accordion title="Start of Semester Setup">
+  1. Add all subjects from your schedule
+  2. Set difficulty ratings (start with 5 if unsure)
+  3. Add first exam dates from syllabi
+  4. Record any placement test scores
+  5. Review weekly and adjust difficulty as needed
+</Accordion>
+
+<Accordion title="Post-Exam Update">
+  1. Receive exam grade
+  2. Add grade with type = "Exam", weight = 40%
+  3. Update nextExamDate to next test
+  4. Check how it affected your average
+  5. Adjust study time if needed
+</Accordion>
+
+<Accordion title="Mid-Semester Review">
+  1. View performance chart
+  2. Identify subjects below target
+  3. Check grade distribution (too few grades?)
+  4. Update difficulty ratings if changed
+  5. Set upcoming exam dates
+  6. Ask AI Coach for study suggestions
+</Accordion>
+
+---
+
+**Next Steps**: Build consistent behaviors with the [Habits & Goals](/features/habits-goals) tracking system.

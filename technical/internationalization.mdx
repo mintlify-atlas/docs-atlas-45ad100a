@@ -1,0 +1,686 @@
+---
+title: Internationalization (i18n)
+description: Multi-language support with i18next, language detection, and translation management
+---
+
+## Overview
+
+Estudio Three supports **4 languages** out of the box:
+- 🇪🇸 Spanish (ES) — Default
+- 🇬🇧 English (EN) — Fallback
+- 🇫🇷 French (FR)
+- 🇮🇹 Italian (IT)
+
+The i18n system uses **i18next** with React integration and automatic language detection.
+
+## Technology Stack
+
+| Package | Purpose |
+|---------|----------|
+| `i18next` | Core i18n framework |
+| `react-i18next` | React bindings (hooks, components) |
+| `i18next-browser-languagedetector` | Auto-detect browser language |
+
+## Configuration
+
+### i18n Setup
+
+```typescript
+// src/i18n.ts
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
+
+// Import translation files
+import es from './i18n/locales/es.json';
+import en from './i18n/locales/en.json';
+import fr from './i18n/locales/fr.json';
+import it from './i18n/locales/it.json';
+
+i18n
+  .use(LanguageDetector)  // Auto-detect browser language
+  .use(initReactI18next)  // React integration
+  .init({
+    resources: {
+      es: { translation: es },
+      en: { translation: en },
+      fr: { translation: fr },
+      it: { translation: it }
+    },
+    fallbackLng: 'en',  // Fallback if language not found
+    debug: false,
+    interpolation: {
+      escapeValue: false  // React already escapes by default
+    },
+    react: {
+      useSuspense: false  // Disable suspense to avoid loading flickers
+    }
+  });
+
+// Load language from settings (localStorage)
+try {
+  const storage = localStorage.getItem('focus-settings-storage');
+  if (storage) {
+    const { state } = JSON.parse(storage);
+    if (state?.language) {
+      i18n.changeLanguage(state.language);
+    }
+  }
+} catch (e) {
+  console.error('Error loading language from settings:', e);
+}
+
+export default i18n;
+```
+
+### Initialization Flow
+
+1. **Language Detection**: `LanguageDetector` checks (in order):
+   - `localStorage` (key: `i18nextLng`)
+   - URL query parameter (`?lng=en`)
+   - Browser language (`navigator.language`)
+   - Fallback to `en`
+
+2. **Settings Override**: If user set language in Settings, load from `focus-settings-storage`
+
+3. **React Integration**: `initReactI18next` provides `useTranslation` hook and `<Trans>` component
+
+## Translation File Structure
+
+### File Organization
+
+```
+src/i18n/
+└── locales/
+    ├── en.json
+    ├── es.json
+    ├── fr.json
+    └── it.json
+```
+
+### JSON Structure
+
+Translations are organized by feature/page:
+
+```json
+// en.json (excerpt)
+{
+  "common": {
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
+    }
+  },
+  "dashboard": {
+    "title": "Routine Optimizer",
+    "subtitle": "Today is",
+    "greeting": "Hello, {{name}}!",
+    "addActivity": "+ Add Task"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "addTask": "Add Task",
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "completed": "Completed"
+    }
+  },
+  "pomodoro": {
+    "start": "Start",
+    "pause": "Pause",
+    "reset": "Reset",
+    "focus": "Focus",
+    "shortBreak": "Short Break",
+    "longBreak": "Long Break"
+  }
+}
+```
+
+### Nested Keys
+
+Use dot notation for nested access:
+
+```typescript
+t('dashboard.greeting', { name: 'Alex' })
+// → "Hello, Alex!"
+
+t('common.days.mon')
+// → "Mon"
+```
+
+## Usage in Components
+
+### useTranslation Hook
+
+```tsx
+import { useTranslation } from 'react-i18next';
+
+function TaskList() {
+  const { t } = useTranslation();
+
+  return (
+    <div>
+      <h1>{t('tasks.title')}</h1>
+      <button>{t('tasks.addTask')}</button>
+    </div>
+  );
+}
+```
+
+### Interpolation (Variables)
+
+```tsx
+// Translation: "Hello, {{name}}!"
+const { t } = useTranslation();
+
+return <h1>{t('dashboard.greeting', { name: user.name })}</h1>;
+// → "Hello, John!"
+```
+
+### Pluralization
+
+```json
+{
+  "tasks": {
+    "count": "{{count}} task",
+    "count_other": "{{count}} tasks"
+  }
+}
+```
+
+```tsx
+t('tasks.count', { count: 1 })  // → "1 task"
+t('tasks.count', { count: 5 })  // → "5 tasks"
+```
+
+### Trans Component (for HTML)
+
+```tsx
+import { Trans } from 'react-i18next';
+
+// Translation: "Read our <0>privacy policy</0>"
+return (
+  <Trans i18nKey="legal.privacyNotice">
+    Read our <a href="/privacy">privacy policy</a>
+  </Trans>
+);
+```
+
+## Language Switching
+
+### Settings Store Integration
+
+```typescript
+// src/stores/useSettingsStore.ts
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+import i18n from '../i18n';
+
+interface SettingsStore {
+  language: string;
+  setLanguage: (lang: string) => void;
+}
+
+export const useSettingsStore = create<SettingsStore>()(
+  persist(
+    (set) => ({
+      language: 'es',
+      setLanguage: (lang) => {
+        i18n.changeLanguage(lang);  // Update i18next
+        set({ language: lang });    // Update store
+      }
+    }),
+    {
+      name: 'focus-settings-storage'
+    }
+  )
+);
+```
+
+### Language Selector Component
+
+```tsx
+import { useSettingsStore } from '@/stores/useSettingsStore';
+import { Globe } from 'lucide-react';
+
+function LanguageSelector() {
+  const { language, setLanguage } = useSettingsStore();
+
+  return (
+    <select value={language} onChange={(e) => setLanguage(e.target.value)}>
+      <option value="es">🇪🇸 Español</option>
+      <option value="en">🇬🇧 English</option>
+      <option value="fr">🇫🇷 Français</option>
+      <option value="it">🇮🇹 Italiano</option>
+    </select>
+  );
+}
+```
+
+## Language Detection
+
+### Detection Order
+
+`i18next-browser-languagedetector` checks sources in this order:
+
+1. **localStorage** (`i18nextLng` key)
+2. **sessionStorage** (`i18nextLng` key)
+3. **URL query parameter** (`?lng=en`)
+4. **URL path** (`/en/dashboard`)
+5. **Cookie** (`i18next` cookie)
+6. **Browser language** (`navigator.language`)
+7. **Fallback** (`en`)
+
+### Custom Detection Logic
+
+Estudio Three adds custom logic in `i18n.ts`:
+
+```typescript
+// Load language from settings if available
+try {
+  const storage = localStorage.getItem('focus-settings-storage');
+  if (storage) {
+    const { state } = JSON.parse(storage);
+    if (state?.language) {
+      i18n.changeLanguage(state.language);
+    }
+  }
+} catch (e) {
+  console.error('Error loading language from settings:', e);
+}
+```
+
+This ensures the app respects the user's saved language preference.
+
+## Adding a New Language
+
+### Step 1: Create Translation File
+
+```bash
+cp src/i18n/locales/en.json src/i18n/locales/de.json
+```
+
+Translate all strings in `de.json`.
+
+### Step 2: Import in i18n.ts
+
+```typescript
+import de from './i18n/locales/de.json';
+
+i18n.init({
+  resources: {
+    es: { translation: es },
+    en: { translation: en },
+    fr: { translation: fr },
+    it: { translation: it },
+    de: { translation: de }  // Add German
+  },
+  // ...
+});
+```
+
+### Step 3: Add to Language Selector
+
+```tsx
+<select value={language} onChange={(e) => setLanguage(e.target.value)}>
+  <option value="es">🇪🇸 Español</option>
+  <option value="en">🇬🇧 English</option>
+  <option value="fr">🇫🇷 Français</option>
+  <option value="it">🇮🇹 Italiano</option>
+  <option value="de">🇩🇪 Deutsch</option>  {/* New */}
+</select>
+```
+
+### Step 4: Update TypeScript Types (Optional)
+
+```typescript
+// src/types/i18n.d.ts
+import 'react-i18next';
+import en from '@/i18n/locales/en.json';
+
+declare module 'react-i18next' {
+  interface CustomTypeOptions {
+    defaultNS: 'translation';
+    resources: {
+      translation: typeof en;
+    };
+  }
+}
+```
+
+This enables TypeScript autocomplete for translation keys.
+
+## Translation Management
+
+### Finding Missing Translations
+
+Use `i18next-parser` to extract translation keys from code:
+
+```bash
+npm install --save-dev i18next-parser
+```
+
+```json
+// i18next-parser.config.js
+module.exports = {
+  locales: ['en', 'es', 'fr', 'it'],
+  output: 'src/i18n/locales/$LOCALE.json',
+  input: ['src/**/*.{ts,tsx}'],
+  keySeparator: '.',
+  namespaceSeparator: false
+};
+```
+
+```bash
+npm run i18n:extract
+```
+
+This scans all `.ts`/`.tsx` files for `t('...')` calls and updates JSON files.
+
+### Translation Validation
+
+Check for missing keys across languages:
+
+```bash
+npm install --save-dev i18next-json-sync
+```
+
+```bash
+npx i18next-json-sync --check
+```
+
+## RTL (Right-to-Left) Support
+
+### Adding Arabic
+
+For RTL languages like Arabic, enable RTL mode:
+
+```typescript
+// src/i18n.ts
+import ar from './i18n/locales/ar.json';
+
+i18n.init({
+  resources: {
+    // ...
+    ar: { translation: ar }
+  }
+});
+
+// Detect RTL languages
+i18n.on('languageChanged', (lng) => {
+  const isRTL = ['ar', 'he', 'fa'].includes(lng);
+  document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+});
+```
+
+### Tailwind RTL Plugin
+
+```bash
+npm install tailwindcss-rtl
+```
+
+```javascript
+// tailwind.config.js
+module.exports = {
+  plugins: [
+    require('tailwindcss-rtl')
+  ]
+};
+```
+
+```css
+/* Example usage */
+.element {
+  @apply ml-4 rtl:mr-4 rtl:ml-0;
+}
+```
+
+## Namespaces (Advanced)
+
+Split translations into multiple namespaces for large apps:
+
+```typescript
+// src/i18n.ts
+i18n.init({
+  ns: ['common', 'dashboard', 'tasks'],
+  defaultNS: 'common',
+  resources: {
+    en: {
+      common: commonEN,
+      dashboard: dashboardEN,
+      tasks: tasksEN
+    }
+  }
+});
+```
+
+```tsx
+// Use specific namespace
+const { t } = useTranslation('dashboard');
+t('greeting')  // → Looks in dashboard namespace
+```
+
+## Performance Optimization
+
+### Lazy Load Translations
+
+Load translation files on demand:
+
+```typescript
+import i18nextHttpBackend from 'i18next-http-backend';
+
+i18n
+  .use(i18nextHttpBackend)
+  .init({
+    backend: {
+      loadPath: '/locales/{{lng}}/{{ns}}.json'
+    },
+    // ...
+  });
+```
+
+**Folder structure:**
+```
+public/locales/
+├── en/
+│   └── translation.json
+├── es/
+│   └── translation.json
+└── fr/
+    └── translation.json
+```
+
+Benefit: Reduces initial bundle size by ~50KB per language.
+
+### Disable Suspense
+
+Estudio Three disables suspense to avoid loading flickers:
+
+```typescript
+react: {
+  useSuspense: false
+}
+```
+
+Without this, components may show fallback UI while translations load.
+
+## Testing Translations
+
+### Mock Translations in Tests
+
+```typescript
+// tests/setup.ts
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+
+i18n
+  .use(initReactI18next)
+  .init({
+    lng: 'en',
+    fallbackLng: 'en',
+    resources: {
+      en: {
+        translation: {
+          'tasks.title': 'Tasks',
+          'tasks.addTask': 'Add Task'
+        }
+      }
+    },
+    interpolation: {
+      escapeValue: false
+    }
+  });
+```
+
+### Test Language Switching
+
+```typescript
+import { renderHook, act } from '@testing-library/react';
+import { useTranslation } from 'react-i18next';
+
+test('changes language', () => {
+  const { result } = renderHook(() => useTranslation());
+  
+  expect(result.current.i18n.language).toBe('en');
+  
+  act(() => {
+    result.current.i18n.changeLanguage('es');
+  });
+  
+  expect(result.current.i18n.language).toBe('es');
+});
+```
+
+## Common Patterns
+
+### Dynamic Keys
+
+```tsx
+const status = 'pending';
+t(`tasks.status.${status}`)  // → "Pending"
+```
+
+### Arrays of Translations
+
+```json
+{
+  "tips": [
+    "Drink water regularly",
+    "Take breaks every hour",
+    "Exercise daily"
+  ]
+}
+```
+
+```tsx
+const tips = t('tips', { returnObjects: true }) as string[];
+tips.map(tip => <li key={tip}>{tip}</li>)
+```
+
+### Date/Number Formatting
+
+```tsx
+import { useTranslation } from 'react-i18next';
+
+const { t, i18n } = useTranslation();
+
+// Date formatting
+const formattedDate = new Intl.DateTimeFormat(i18n.language).format(new Date());
+
+// Number formatting
+const formattedNumber = new Intl.NumberFormat(i18n.language).format(1234.56);
+```
+
+## Troubleshooting
+
+### Translation Not Updating
+
+**Symptoms:** Changed translation in JSON but app still shows old text
+
+**Solutions:**
+- Hard refresh browser (`Ctrl+Shift+R` / `Cmd+Shift+R`)
+- Clear localStorage (`localStorage.clear()`)
+- Restart dev server (`npm run dev`)
+- Check if key is correct (case-sensitive)
+
+### Language Stuck on English
+
+**Symptoms:** App always shows English despite settings
+
+**Solutions:**
+- Check `focus-settings-storage` in localStorage
+- Verify `setLanguage()` is updating i18next: `i18n.changeLanguage(lang)`
+- Check browser console for i18next errors
+- Ensure translation file is imported in `i18n.ts`
+
+### Missing Translation Shows Key
+
+**Symptoms:** `tasks.addTask` displayed instead of "Add Task"
+
+**Solutions:**
+- Translation key doesn't exist in JSON file
+- Check spelling and nesting (use dot notation)
+- Ensure language file is loaded: `i18n.hasResourceBundle('en', 'translation')`
+- Set `fallbackLng` to show English if translation missing
+
+## Future Enhancements
+
+### Database-Backed Translations
+
+The schema includes a `translations` table for dynamic translations:
+
+```sql
+CREATE TABLE translations (
+  id uuid PRIMARY KEY,
+  namespace text DEFAULT 'translation',
+  key text NOT NULL,
+  lang text NOT NULL,
+  value text NOT NULL,
+  UNIQUE(namespace, key, lang)
+);
+```
+
+This allows:
+- User-submitted translations
+- A/B testing copy changes
+- Dynamic content translation
+
+### Supabase i18n Backend
+
+Create a custom backend to load translations from Supabase:
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseBackend = {
+  type: 'backend',
+  init: () => {},
+  read: async (language: string, namespace: string, callback: Function) => {
+    const { data } = await supabase
+      .from('translations')
+      .select('key, value')
+      .eq('lang', language)
+      .eq('namespace', namespace);
+    
+    const translations = data?.reduce((acc, row) => {
+      acc[row.key] = row.value;
+      return acc;
+    }, {});
+    
+    callback(null, translations);
+  }
+};
+
+i18n.use(supabaseBackend).init({ /* ... */ });
+```
+
+Benefits:
+- Translations sync across devices instantly
+- No app redeployment for copy changes
+- Collaborative translation via UI

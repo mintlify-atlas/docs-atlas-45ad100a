@@ -1,0 +1,472 @@
+---
+title: "Achievements & Progression"
+description: "Earn XP, unlock achievements, and level up as you complete tasks and maintain consistency"
+---
+
+The achievements system gamifies your productivity by rewarding you with XP (experience points) for completing tasks, maintaining streaks, and reaching milestones.
+
+## How the XP System Works
+
+Estudio Three uses a classic leveling system:
+
+### Earning XP
+
+You gain XP by:
+
+- ✅ **Completing routine blocks** - Finishing study sessions
+- 🎯 **Unlocking achievements** - Meeting specific goals
+- 🔥 **Maintaining streaks** - Consistent daily activity
+- 📚 **Finishing Pomodoro sessions** - Completing focus cycles
+
+<Note>
+Each achievement has a unique XP reward value. Rare achievements grant more XP than common ones.
+</Note>
+
+### XP Calculation
+
+Your total XP is the sum of all unlocked achievement rewards:
+
+```typescript
+const xpTotal = desbloqueados.reduce(
+  (sum, achievement) => sum + achievement.xpReward, 
+  0
+);
+```
+
+**Example:**
+```
+Achievements unlocked:
+- First Task Completed: +50 XP
+- 5-Day Streak: +100 XP  
+- Subject Master: +200 XP
+
+Total XP: 350
+```
+
+## Leveling System
+
+Your level is determined by your total XP using a progressive curve:
+
+### Level Formula
+
+- **Level 1:** 0-199 XP (requires 200 XP)
+- **Level 2:** 200-599 XP (requires 400 XP total)
+- **Level 3:** 600-1199 XP (requires 600 XP total)
+- **Level 4:** 1200-1999 XP (requires 800 XP total)
+- **Level N:** Each level requires 200 XP more than the previous
+
+<Accordion title="Why increasing XP requirements?">
+  Progressive leveling prevents the system from feeling trivial at higher levels. Early levels come quickly to provide positive feedback, while later levels require sustained effort and commitment.
+  
+  This design pattern is common in RPGs and productivity apps to maintain long-term engagement.
+</Accordion>
+
+### Level Calculation Example
+
+If you have 650 XP:
+
+```typescript
+Level 1: 0 + 200 = 200 XP ✓ (total: 200)
+Level 2: 200 + 400 = 600 XP ✓ (total: 600)  
+Level 3: 600 + 600 = 1200 XP ⏸️ (need 1200)
+
+Current Level: 2
+Current Level XP: 650 - 600 = 50 XP
+XP to Next Level: 600 XP
+Progress: 50/600 = 8.3%
+```
+
+### Progress Bar
+
+On the Achievements page, you'll see:
+
+```
+Level 2          3,450 XP Total
+
+[========·············] 8.3%
+50 / 600 XP                Level 3
+```
+
+The progress bar fills as you earn XP toward your next level.
+
+<Tip>
+You can never lose levels or XP. Progress is permanent and cumulative.
+</Tip>
+
+## Achievement Categories
+
+Achievements are organized by type:
+
+### Milestone Achievements
+
+Awarded for reaching specific thresholds:
+
+- First task completed
+- 10 tasks completed
+- 100 tasks completed
+- 1000 tasks completed
+
+**XP Rewards:** 50-500 XP
+
+### Streak Achievements  
+
+Awarded for consecutive days of activity:
+
+- 3-day streak
+- 7-day streak
+- 30-day streak
+- 100-day streak
+
+**XP Rewards:** 75-1000 XP
+
+### Subject Mastery
+
+Awarded for completing study sessions in specific subjects:
+
+- 10 Math sessions
+- 10 Science sessions
+- Subject-specific achievements
+
+**XP Rewards:** 100-300 XP
+
+### Time-Based Achievements
+
+Awarded for total focus time:
+
+- 10 hours focused
+- 50 hours focused
+- 100 hours focused
+
+**XP Rewards:** 150-800 XP
+
+### Special Achievements
+
+Rare achievements for exceptional accomplishments:
+
+- Perfect week (all tasks completed)
+- Early bird (consistent morning study)
+- Night owl (consistent evening study)
+
+**XP Rewards:** 200-500 XP
+
+<Note>
+The specific achievement catalog is defined in the backend. New achievements may be added over time without app updates.
+</Note>
+
+## Viewing Your Achievements
+
+Navigate to the Achievements page from your dashboard:
+
+```
+🏆 Achievements
+```
+
+### Page Layout
+
+The achievements page has three sections:
+
+#### 1. Level & XP Card
+
+Displays:
+- Current level
+- Total XP earned
+- Progress bar to next level
+- Achievement unlock counter (X/Y unlocked)
+
+#### 2. Unlocked Achievements Grid
+
+Shows all achievements you've earned:
+
+- **Icon** - Achievement emoji/icon
+- **Title** - Achievement name
+- **Description** - What you accomplished
+- **XP Reward** - Points earned
+- **Unlock Date** - When you got it
+- **Full Color** - Vibrant styling
+
+#### 3. Locked Achievements Grid
+
+Shows achievements you haven't unlocked yet:
+
+- **Lock Icon** - Replaces achievement icon
+- **Title** - Achievement name
+- **Description** - How to unlock it
+- **XP Reward** - Points available
+- **Grayscale** - Muted styling
+- **50% Opacity** - Visual indication of locked state
+
+<Tip>
+Check locked achievements regularly to see what you can work toward next.
+</Tip>
+
+## Achievement Notifications
+
+When you unlock an achievement:
+
+1. **Toast Notification** appears
+2. **XP Reward** is displayed
+3. **Achievement Icon** is shown
+4. **Sound Effect** plays (if enabled)
+
+The notification appears in the corner of your screen and auto-dismisses after 5 seconds.
+
+<Accordion title="Can I disable achievement notifications?">
+  Not currently. Achievement notifications are designed to be non-intrusive and celebratory. If they're distracting during focus work, consider:
+  - Using Zen Mode (no notifications)
+  - Checking achievements page later
+  - Muting system notifications
+</Accordion>
+
+## How Achievements Are Triggered
+
+Achievements are checked and unlocked automatically:
+
+### On Task Completion
+
+When you mark a routine block as complete:
+
+```typescript
+1. Task completion is recorded
+2. Achievement system checks:
+   - Total tasks completed (milestone)
+   - Subject-specific task count
+   - Current streak status
+3. If criteria met, achievement unlocks
+4. XP is added to your total
+5. Toast notification appears
+```
+
+### On Daily Login
+
+When you visit the app:
+
+```typescript
+1. Last activity date is checked
+2. If new day:
+   - Streak is updated or reset
+   - Streak achievements are evaluated
+3. If criteria met, achievement unlocks
+```
+
+### On Focus Session End
+
+When a Pomodoro timer completes:
+
+```typescript
+1. Focus time is recorded
+2. Achievement system checks:
+   - Total focus time accumulated
+   - Time-of-day patterns (early/late)
+3. If criteria met, achievement unlocks
+```
+
+<Note>
+Achievement checks happen in the background. You don't need to do anything special to trigger them - just use the app normally.
+</Note>
+
+## Achievement Catalog
+
+The achievement catalog is defined in your backend database:
+
+```typescript
+interface Achievement {
+  id: string;           // Unique identifier
+  title: string;        // Display name
+  description: string;  // How to unlock
+  xpReward: number;     // XP granted
+  icon: string;         // Emoji or icon
+  category?: string;    // Optional grouping
+}
+```
+
+### Example Achievements
+
+```json
+[
+  {
+    "id": "first-task",
+    "title": "Getting Started",
+    "description": "Complete your first task",
+    "xpReward": 50,
+    "icon": "🎯"
+  },
+  {
+    "id": "week-streak",
+    "title": "Consistent Week",
+    "description": "Complete tasks 7 days in a row",
+    "xpReward": 200,
+    "icon": "🔥"
+  },
+  {
+    "id": "math-master",
+    "title": "Math Master",
+    "description": "Complete 50 Math study sessions",
+    "xpReward": 300,
+    "icon": "📐"
+  }
+]
+```
+
+<Warning>
+The achievement catalog shown above is illustrative. Your actual achievements depend on your backend configuration. Check the Achievements page for the current catalog.
+</Warning>
+
+## Progression Strategy
+
+### Quick XP (Early Levels)
+
+To level up quickly when starting:
+
+1. **Complete onboarding** - May unlock "Profile Complete" achievement
+2. **Finish your first task** - Unlocks "Getting Started" (50 XP)
+3. **Complete daily routine** - Unlock multiple task milestones
+4. **Use Pomodoro timer** - Unlock time-based achievements
+5. **Log in daily** - Build your streak
+
+<Tip>
+Levels 1-3 come quickly (within the first week). This provides immediate positive feedback.
+</Tip>
+
+### Sustained Growth (Mid Levels)
+
+At levels 4-10:
+
+- **Focus on streaks** - Daily consistency pays off
+- **Subject mastery** - Complete lots of tasks in one subject
+- **Time accumulation** - Log hours of focused work
+- **Perfect weeks** - Complete all scheduled tasks
+
+### Long-Term Goals (High Levels)
+
+At level 10+:
+
+- **Ultra streaks** - 100+ day streaks for huge XP
+- **Total hours** - 500+ hours focused
+- **Task count** - 1000+ tasks completed
+- **Special achievements** - Rare, high-XP unlocks
+
+<Accordion title="What's the maximum level?">
+  Theoretically unlimited! The level formula continues infinitely:
+  
+  - Level 50: ~255,000 XP
+  - Level 100: ~1,010,000 XP
+  
+  However, realistically most users reach levels 15-30 with regular use over months/years.
+</Accordion>
+
+## Motivational Impact
+
+The achievement system is designed to:
+
+### Provide Immediate Feedback
+
+- Visual confirmation of progress
+- Dopamine hit from unlocks
+- Tangible sense of accomplishment
+
+### Encourage Consistency
+
+- Streak achievements reward daily use
+- Loss aversion keeps you coming back
+- Small wins compound over time
+
+### Create Long-Term Goals
+
+- High-level achievements provide aspirational targets
+- Slow leveling at high levels maintains challenge
+- Always something new to work toward
+
+<Note>
+Research shows gamification is most effective when combined with intrinsic motivation. Achievements work best when you're already committed to your studies - they enhance, not replace, genuine academic goals.
+</Note>
+
+## Privacy & Data
+
+Your achievement data:
+
+- ✅ Stored in your user profile
+- ✅ Synced to cloud (if signed in)
+- ✅ Used only for your progress tracking
+- ❌ Not shared publicly (unless you choose to)
+- ❌ Not used for analytics or advertising
+
+<Tip>
+If you use Estudio Three offline, achievements sync the next time you connect.
+</Tip>
+
+## Troubleshooting
+
+<Accordion title="Achievement didn't unlock">
+  **Possible causes:**
+  - Criteria not fully met (check description)
+  - Backend sync delay
+  - Already unlocked (check unlocked list)
+  
+  **Solution:**
+  - Refresh the achievements page
+  - Check specific unlock requirements
+  - Try completing another task to trigger check
+</Accordion>
+
+<Accordion title="XP not updating">
+  **Possible causes:**
+  - Page not refreshed
+  - Cache issue
+  - Network sync problem
+  
+  **Solution:**
+  - Hard refresh (Ctrl+Shift+R)
+  - Check internet connection
+  - Sign out and sign back in
+</Accordion>
+
+<Accordion title="Lost my streak">
+  **Cause:** Missed a day of activity
+  
+  **Solution:**
+  Unfortunately, streaks cannot be restored. Start a new streak today! Many apps offer "streak freeze" items, but Estudio Three currently does not.
+  
+  **Prevention:**
+  - Set daily reminders
+  - Complete at least one task per day
+  - Check in even on weekends
+</Accordion>
+
+<Accordion title="Wrong achievement icon/title">
+  **Cause:** Backend data issue
+  
+  **Solution:**
+  This is controlled by your backend configuration. Contact support if achievement data appears incorrect.
+</Accordion>
+
+## Leaderboards & Social
+
+<Warning>
+Estudio Three currently does NOT have:
+- Public leaderboards
+- Social comparison features
+- Friend systems
+- Achievement sharing
+
+Your progress is private by default. Social features may be added in future versions.
+</Warning>
+
+## Achievement Design Philosophy
+
+Estudio Three's achievements follow these principles:
+
+1. **Intrinsic > Extrinsic** - Rewards should enhance, not replace, internal motivation
+2. **Progress > Competition** - Focus on personal growth, not comparison
+3. **Consistency > Intensity** - Daily habits beat occasional heroics
+4. **Meaningful > Arbitrary** - Achievements align with real academic goals
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Routines" icon="calendar" href="/guides/creating-routines">
+    Complete routine tasks to earn XP
+  </Card>
+  <Card title="Focus Mode" icon="eye" href="/guides/focus-mode">
+    Use Zen Mode during study sessions
+  </Card>
+</CardGroup>

@@ -1,0 +1,459 @@
+---
+title: 'Calendar'
+description: 'Event management with Supabase and Zustand'
+---
+
+# Calendar API
+
+Manage calendar events including exams, matches, training sessions, classes, and holidays.
+
+## Store Location
+
+`src/stores/useCalendarStore.ts`
+
+## Data Types
+
+### CalendarEvent
+
+```typescript
+interface CalendarEvent {
+  id: string;              // UUID
+  title: string;           // Event title (sanitized)
+  date: string;            // ISO date string (YYYY-MM-DD)
+  time?: string;           // HH:MM format (undefined for all-day events)
+  endTime?: string;        // HH:MM format (optional)
+  type: EventType;         // Event category
+  description?: string;    // Optional description
+}
+```
+
+### EventType
+
+```typescript
+type EventType = 'exam' | 'match' | 'training' | 'class' | 'other' | 'holiday';
+```
+
+### EventColors
+
+Predefined colors for each event type:
+
+```typescript
+const EVENT_COLORS: Record<EventType, string> = {
+  exam: '#ef4444',      // Red
+  match: '#3b82f6',     // Blue
+  training: '#f59e0b',  // Amber
+  class: '#8b5cf6',     // Violet
+  holiday: '#10b981',   // Green
+  other: '#6b7280'      // Gray
+};
+```
+
+## Event Operations
+
+### Fetch Events
+
+Fetches all events for the authenticated user.
+
+```typescript
+import { useCalendarStore } from '@/stores/useCalendarStore';
+
+await useCalendarStore.getState().fetchEvents();
+```
+
+**Query:**
+```sql
+SELECT *
+FROM events
+WHERE user_id = $1
+ORDER BY start_time ASC;
+```
+
+**Process:**
+1. Queries Supabase `events` table
+2. Parses database timestamps to frontend format
+3. Extracts date and time components
+4. Sets `isInitialized` flag
+
+### Add Event
+
+<ParamField path="eventData" type="Omit<CalendarEvent, 'id'>" required>
+  Event data (ID auto-generated)
+</ParamField>
+
+```typescript
+// All-day event
+await useCalendarStore.getState().addEvent({
+  title: 'Spring Break',
+  date: '2026-03-15',
+  type: 'holiday',
+  description: 'School holiday'
+});
+
+// Timed event
+await useCalendarStore.getState().addEvent({
+  title: 'Math Exam',
+  date: '2026-03-20',
+  time: '10:00',
+  endTime: '12:00',
+  type: 'exam',
+  description: 'Chapters 1-5'
+});
+```
+
+**Process:**
+1. Sanitizes `title` and `description`
+2. Constructs `start_time` from `date` and `time`
+3. Constructs `end_time` from `date` and `endTime`
+4. Sets `is_all_day` based on presence of `time`
+5. Inserts to database
+6. Adds to local store on success
+
+**Time Parsing:**
+```typescript
+let start_time_str = eventData.date;
+if (eventData.time) {
+  start_time_str += `T${eventData.time}:00`;
+} else {
+  start_time_str += 'T00:00:00';  // All-day events default to midnight
+}
+const startTime = new Date(start_time_str).toISOString();
+```
+
+### Update Event
+
+<ParamField path="id" type="string" required>
+  Event UUID
+</ParamField>
+
+<ParamField path="updates" type="Partial<CalendarEvent>" required>
+  Fields to update
+</ParamField>
+
+```typescript
+await useCalendarStore.getState().updateEvent('event-uuid', {
+  title: 'Updated Event Title',
+  time: '14:00',
+  endTime: '16:00'
+});
+```
+
+**Process:**
+1. Finds current event in store
+2. Merges updates with current event
+3. Recalculates `start_time` and `end_time`
+4. Updates database
+5. Updates local store on success
+
+### Delete Event
+
+<ParamField path="id" type="string" required>
+  Event UUID
+</ParamField>
+
+```typescript
+await useCalendarStore.getState().deleteEvent('event-uuid');
+```
+
+## View Management
+
+### Set Selected Date
+
+<ParamField path="date" type="string" required>
+  Date in YYYY-MM-DD format
+</ParamField>
+
+```typescript
+useCalendarStore.getState().setSelectedDate('2026-03-15');
+```
+
+### Set View Mode
+
+<ParamField path="mode" type="'monthly' | 'weekly'" required>
+  Calendar view mode
+</ParamField>
+
+```typescript
+useCalendarStore.getState().setViewMode('weekly');
+useCalendarStore.getState().setViewMode('monthly');
+```
+
+## Query Events
+
+### Get Events for Date
+
+<ParamField path="date" type="string" required>
+  Date in YYYY-MM-DD format
+</ParamField>
+
+Returns events sorted by time (all-day events first).
+
+```typescript
+const events = useCalendarStore.getState().getEventsForDate('2026-03-15');
+```
+
+**Implementation:**
+```typescript
+return events
+  .filter(e => e.date === date)
+  .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''));
+```
+
+### Get Upcoming Events
+
+<ParamField path="days" type="number" required>
+  Number of days to look ahead
+</ParamField>
+
+Returns events within the next N days, sorted by date then time.
+
+```typescript
+const upcomingEvents = useCalendarStore.getState().getUpcomingEvents(7);
+```
+
+**Implementation:**
+```typescript
+const today = new Date();
+const limit = new Date(today);
+limit.setDate(limit.getDate() + days);
+
+const todayStr = today.toISOString().split('T')[0];
+const limitStr = limit.toISOString().split('T')[0];
+
+return events
+  .filter(e => e.date >= todayStr && e.date <= limitStr)
+  .sort((a, b) => 
+    a.date.localeCompare(b.date) || 
+    (a.time ?? '').localeCompare(b.time ?? '')
+  );
+```
+
+## Store State
+
+```typescript
+const { 
+  events, 
+  selectedDate, 
+  viewMode, 
+  isLoading, 
+  error, 
+  isInitialized 
+} = useCalendarStore();
+```
+
+### Store Fields
+
+<ResponseField name="events" type="CalendarEvent[]">
+  Array of all events
+</ResponseField>
+
+<ResponseField name="selectedDate" type="string">
+  Currently selected date (YYYY-MM-DD)
+</ResponseField>
+
+<ResponseField name="viewMode" type="'monthly' | 'weekly'">
+  Current calendar view mode
+</ResponseField>
+
+<ResponseField name="isLoading" type="boolean">
+  Loading state during async operations
+</ResponseField>
+
+<ResponseField name="error" type="string | null">
+  Error message from last operation
+</ResponseField>
+
+<ResponseField name="isInitialized" type="boolean">
+  True after first successful fetch
+</ResponseField>
+
+## Database Schema
+
+From `/home/daytona/workspace/source/supabase/schema.sql:90`:
+
+```sql
+create table events (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  subject_id uuid references subjects(id) on delete set null,
+  
+  title text not null,
+  type event_type default 'OTHER',
+  description text,
+  
+  start_time timestamp with time zone not null,
+  end_time timestamp with time zone,
+  location text,
+  
+  is_all_day boolean default false,
+  
+  created_at timestamp with time zone default now()
+);
+
+create index events_start_time_idx on events(start_time);
+```
+
+## Row Level Security
+
+```sql
+create policy "Usuarios gestionan sus eventos" 
+  on events for all 
+  using ( auth.uid() = user_id );
+```
+
+Users can only access their own events.
+
+## Weekly Schedule
+
+For recurring weekly commitments (e.g., "Math class every Monday at 9 AM"), use the `weekly_schedule` table:
+
+```sql
+create table weekly_schedule (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  subject_id uuid references subjects(id) on delete set null,
+  
+  day_of_week int not null check (day_of_week between 0 and 6),  -- 0=Sunday
+  start_time time not null,
+  end_time time not null,
+  
+  activity_type event_type default 'CLASS',
+  title text,
+  location text,
+  
+  created_at timestamp with time zone default now()
+);
+```
+
+**Note:** Weekly schedules are separate from one-time events. They represent recurring commitments that appear in the routine engine's fixed blocks.
+
+## Clear Events
+
+Clears all events from store (useful for logout):
+
+```typescript
+useCalendarStore.getState().clearEvents();
+```
+
+## Example: Calendar Component
+
+```typescript
+import { useCalendarStore } from '@/stores/useCalendarStore';
+import { useEffect, useState } from 'react';
+
+function CalendarView() {
+  const { 
+    events, 
+    selectedDate, 
+    setSelectedDate, 
+    getEventsForDate, 
+    fetchEvents, 
+    isLoading 
+  } = useCalendarStore();
+
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
+
+  const eventsForSelectedDate = getEventsForDate(selectedDate);
+
+  if (isLoading) return <div>Loading events...</div>;
+
+  return (
+    <div>
+      <h2>Calendar</h2>
+      <div>
+        <button onClick={() => setSelectedDate(new Date().toISOString().split('T')[0])}>
+          Today
+        </button>
+      </div>
+      
+      <div>
+        <h3>Events on {selectedDate}</h3>
+        {eventsForSelectedDate.length === 0 ? (
+          <p>No events</p>
+        ) : (
+          <ul>
+            {eventsForSelectedDate.map(event => (
+              <li key={event.id} style={{ borderLeft: `4px solid ${EVENT_COLORS[event.type]}` }}>
+                <strong>{event.title}</strong>
+                {event.time && <span> at {event.time}</span>}
+                {event.endTime && <span> - {event.endTime}</span>}
+                <span> ({event.type})</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+```
+
+## Example: Upcoming Events Widget
+
+```typescript
+import { useCalendarStore } from '@/stores/useCalendarStore';
+import { EVENT_COLORS } from '@/stores/useCalendarStore';
+
+function UpcomingEventsWidget() {
+  const { getUpcomingEvents } = useCalendarStore();
+  const upcomingEvents = getUpcomingEvents(7);  // Next 7 days
+
+  return (
+    <div>
+      <h3>Upcoming This Week</h3>
+      {upcomingEvents.length === 0 ? (
+        <p>No upcoming events</p>
+      ) : (
+        <ul>
+          {upcomingEvents.map(event => (
+            <li key={event.id}>
+              <span 
+                style={{ 
+                  display: 'inline-block',
+                  width: '10px',
+                  height: '10px',
+                  borderRadius: '50%',
+                  backgroundColor: EVENT_COLORS[event.type]
+                }}
+              />
+              <strong>{event.title}</strong>
+              <span> - {event.date}</span>
+              {event.time && <span> at {event.time}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+```
+
+## Integration with Routines
+
+Events are used by the routine engine to create fixed blocks:
+
+```typescript
+import { createFixedBlocks } from '@/features/routine/engine';
+import { useCalendarStore } from '@/stores/useCalendarStore';
+
+const events = useCalendarStore.getState().events;
+const todayEvents = events.filter(e => e.date === today);
+
+// Events become fixed blocks in the routine
+const fixedBlocks = createFixedBlocks(profile, new Date());
+```
+
+## Best Practices
+
+<Check>**All-Day Detection:** Omit `time` field for all-day events. The store automatically sets `is_all_day` flag.</Check>
+
+<Check>**Input Sanitization:** Always sanitize user input. The store uses `sanitizarTexto()` for title and description.</Check>
+
+<Check>**Date Format:** Use ISO format (YYYY-MM-DD) for dates and HH:MM for times.</Check>
+
+<Check>**Event Colors:** Use `EVENT_COLORS` constant for consistent UI styling.</Check>
+
+<Check>**Error Handling:** Check `error` state after operations and display user-friendly messages.</Check>

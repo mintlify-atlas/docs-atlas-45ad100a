@@ -1,0 +1,381 @@
+---
+title: "Installation"
+description: "Complete guide to installing and running Routine Optimizer locally"
+---
+
+This guide covers local development setup and Docker deployment for Routine Optimizer.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+| Software | Version | Required | Notes |
+| --- | --- | --- | --- |
+| **Node.js** | 20.x or higher | Yes | Required for Vite and development |
+| **npm** | 10.x or higher | Yes | Package manager |
+| **Git** | 2.x or higher | Yes | Version control |
+| **Docker** | 24.x or higher | Optional | For containerized deployment |
+
+<Note>
+  This project uses **Node.js 20+** for modern JavaScript features and optimal Vite performance. Earlier versions may cause compatibility issues.
+</Note>
+
+## Quick Start (Local Development)
+
+Get Routine Optimizer running on your local machine in minutes.
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/Haplee/estudio.git
+    cd estudio
+    ```
+  </Step>
+
+  <Step title="Install dependencies">
+    <CodeGroup>
+    ```bash npm
+    npm install
+    ```
+
+    ```bash yarn
+    yarn install
+    ```
+
+    ```bash pnpm
+    pnpm install
+    ```
+    </CodeGroup>
+
+    <Tip>
+      Installation typically takes 30-60 seconds depending on your internet connection.
+    </Tip>
+  </Step>
+
+  <Step title="Configure environment variables">
+    Create a `.env` file in the root directory by copying the example:
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    Edit `.env` with your configuration:
+
+    ```env .env
+    # ===== SUPABASE (Required) =====
+    VITE_SUPABASE_URL=https://your-project.supabase.co
+    VITE_SUPABASE_ANON_KEY=eyJxxxxxxxxxxxx
+    VITE_APP_URL=http://localhost:5173
+
+    # ===== AI COACH (Optional but recommended) =====
+    GROQ_API_KEY=gsk_xxxxxxxxxxxxxxxxxxxx
+    PORT=3001
+
+    # ===== ENVIRONMENT =====
+    NODE_ENV=development
+    ```
+
+    <Warning>
+      **Never expose `GROQ_API_KEY` to the client!** This key is only used server-side in the Vercel serverless function at `/api/ai.ts`.
+    </Warning>
+
+    See [Environment Variables](/deployment/environment-variables) for detailed configuration.
+  </Step>
+
+  <Step title="Set up Supabase">
+    1. Create a project at [supabase.com](https://supabase.com)
+    2. Navigate to **SQL Editor** in your Supabase dashboard
+    3. Copy the entire content of `supabase/schema.sql` from the repository
+    4. Execute the SQL script to create tables, types, and RLS policies
+    5. Get your credentials from **Project Settings → API**:
+       - Copy **Project URL** to `VITE_SUPABASE_URL`
+       - Copy **anon public** key to `VITE_SUPABASE_ANON_KEY`
+
+    <Tip>
+      The schema includes Row Level Security (RLS) policies to protect user data automatically.
+    </Tip>
+
+    For detailed Supabase setup, see [Supabase Setup Guide](/deployment/supabase-setup).
+  </Step>
+
+  <Step title="Set up Groq API (optional)">
+    The AI Coach feature requires a Groq API key for Llama 3 inference:
+
+    1. Create a free account at [console.groq.com](https://console.groq.com/)
+    2. Navigate to **API Keys** and create a new key
+    3. Add the key to your `.env` file as `GROQ_API_KEY`
+
+    <Note>
+      Groq's free tier provides fast inference with rate limits. The AI Coach will be disabled if no API key is provided.
+    </Note>
+  </Step>
+
+  <Step title="Start the development server">
+    ```bash
+    npm run dev
+    ```
+
+    The app will be available at `http://localhost:5173`
+
+    <Tip>
+      The dev server includes hot module replacement (HMR). Changes to your code will reflect instantly without page reload.
+    </Tip>
+  </Step>
+
+  <Step title="Verify the installation">
+    1. Open `http://localhost:5173` in your browser
+    2. You should see the login/register screen
+    3. Create a test account
+    4. Complete the onboarding flow
+    5. Check that you can access the dashboard
+
+    If you encounter issues, see [Troubleshooting](#troubleshooting) below.
+  </Step>
+</Steps>
+
+## Docker Deployment
+
+Run Routine Optimizer in a production-ready Docker container with Nginx.
+
+<Note>
+  Docker deployment is **production-ready** and includes multi-stage builds with optimized assets.
+</Note>
+
+### Using Docker Compose
+
+<Steps>
+  <Step title="Navigate to the project root">
+    ```bash
+    cd estudio
+    ```
+  </Step>
+
+  <Step title="Build the production image">
+    Pass your environment variables as build arguments:
+
+    ```bash
+    docker-compose --profile prod build \
+      --build-arg VITE_SUPABASE_URL=https://your-project.supabase.co \
+      --build-arg VITE_SUPABASE_ANON_KEY=your_anon_key \
+      --build-arg VITE_APP_URL=https://yourdomain.com
+    ```
+
+    <Warning>
+      **Important:** Vite environment variables (prefixed with `VITE_`) must be passed at **build time**, not runtime. They are embedded into the JavaScript bundle.
+    </Warning>
+  </Step>
+
+  <Step title="Start the container">
+    ```bash
+    docker-compose --profile prod up -d
+    ```
+
+    The app will be available at `http://localhost:8080`
+  </Step>
+
+  <Step title="View logs">
+    ```bash
+    docker-compose logs -f app-prod
+    ```
+  </Step>
+
+  <Step title="Stop the container">
+    ```bash
+    docker-compose --profile prod down
+    ```
+  </Step>
+</Steps>
+
+### Using the Management Script
+
+Routine Optimizer includes helper scripts for Docker management:
+
+<CodeGroup>
+```bash Linux/macOS
+./scripts/manage.sh
+```
+
+```powershell Windows
+./scripts/manage.ps1
+```
+</CodeGroup>
+
+The script provides an interactive menu:
+1. **Launch Application** - Build and start the container
+2. **Stop Application** - Stop and remove containers
+3. **View Logs** - Monitor container logs
+4. **Clean Build** - Remove all Docker artifacts and rebuild
+5. **Exit**
+
+<Tip>
+  The management script automatically detects your environment variables from `.env` and passes them to Docker.
+</Tip>
+
+### Dockerfile Architecture
+
+The Dockerfile uses a **multi-stage build** for optimal image size:
+
+```dockerfile Dockerfile
+# Stage 1: Build the app
+FROM node:20-alpine as build
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+RUN npm ci
+
+COPY src ./src
+COPY public ./public
+COPY api ./api
+COPY index.html tsconfig.* vite.config.ts postcss.config.js tailwind.config.js eslint.config.js ./
+
+# Environment variables passed as build args
+ARG VITE_SUPABASE_URL
+ARG VITE_SUPABASE_ANON_KEY
+ARG VITE_APP_URL
+ENV VITE_SUPABASE_URL=$VITE_SUPABASE_URL
+ENV VITE_SUPABASE_ANON_KEY=$VITE_SUPABASE_ANON_KEY
+ENV VITE_APP_URL=$VITE_APP_URL
+
+RUN npm run build
+
+# Stage 2: Serve with Nginx
+FROM nginxinc/nginx-unprivileged:alpine
+
+COPY --from=build /app/dist /usr/share/nginx/html
+COPY --chown=nginx:nginx deploy/docker/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 8080
+
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+## Available Scripts
+
+The project includes several npm scripts for development and testing:
+
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Start development server with Vite and ngrok |
+| `npm run build` | Build for production |
+| `npm run preview` | Preview production build locally |
+| `npm run lint` | Run ESLint code analysis |
+| `npm test` | Run Vitest test suite |
+| `npm run share` | Share local server via ngrok tunnel |
+
+<Tip>
+  Use `npm run share` to test the PWA on mobile devices during development. Ngrok creates a public URL for your local server.
+</Tip>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Error: Supabase connection failed" icon="database">
+    **Symptoms:** Login fails, or you see "Unable to connect to database"
+
+    **Solutions:**
+    1. Verify `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` in your `.env`
+    2. Ensure you've run the `supabase/schema.sql` script
+    3. Check that your Supabase project is active
+    4. Verify API access is enabled in Supabase settings
+  </Accordion>
+
+  <Accordion title="Error: AI Coach not responding" icon="robot">
+    **Symptoms:** AI Coach shows error or doesn't respond
+
+    **Solutions:**
+    1. Verify `GROQ_API_KEY` is set in your `.env`
+    2. Check Groq API rate limits at [console.groq.com](https://console.groq.com)
+    3. Ensure the Vercel serverless function is deployed (for production)
+    4. Check browser console for API errors
+    5. Disable ad-blockers that may block API requests
+  </Accordion>
+
+  <Accordion title="Docker: White screen after deployment" icon="docker">
+    **Symptoms:** Container runs but shows blank page
+
+    **Solutions:**
+    1. Ensure you passed `--build-arg` for all `VITE_*` variables during build
+    2. Rebuild the image from scratch: `docker-compose build --no-cache`
+    3. Check browser console for JavaScript errors
+    4. Verify nginx configuration in `deploy/docker/nginx.conf`
+  </Accordion>
+
+  <Accordion title="Error: Node version incompatibility" icon="triangle-exclamation">
+    **Symptoms:** `ERR_OSSL_EVP_UNSUPPORTED` or similar OpenSSL errors
+
+    **Solutions:**
+    1. Upgrade to Node.js 20.x or higher
+    2. Use [nvm](https://github.com/nvm-sh/nvm) to manage Node versions:
+       ```bash
+       nvm install 20
+       nvm use 20
+       ```
+    3. Verify version: `node --version`
+  </Accordion>
+
+  <Accordion title="Pomodoro timer has no sound" icon="volume">
+    **Symptoms:** Timer completes but doesn't play notification sound
+
+    **Solutions:**
+    1. Check that `/public/notification.mp3` exists
+    2. Verify audio is enabled in **Settings → Study Preferences**
+    3. Ensure browser tab is not muted
+    4. Interact with the page before starting (browsers block autoplay audio)
+    5. Check browser audio permissions
+  </Accordion>
+
+  <Accordion title="PWA not updating after deployment" icon="mobile">
+    **Symptoms:** Changes don't appear after pushing to production
+
+    **Solutions:**
+    1. Hard refresh: `Ctrl + F5` (Windows) or `Cmd + Shift + R` (Mac)
+    2. Go to **Settings → Check for Updates** in the app
+    3. Unregister service worker in browser DevTools → Application → Service Workers
+    4. Clear browser cache and reload
+  </Accordion>
+
+  <Accordion title="OAuth redirect_mismatch error" icon="key">
+    **Symptoms:** Google/GitHub login fails with redirect error
+
+    **Solutions:**
+    1. Go to Supabase dashboard → **Authentication → Providers**
+    2. Add your `VITE_APP_URL` to allowed redirect URLs
+    3. For production, add your production domain
+    4. Ensure URL includes protocol (`https://` or `http://`)
+  </Accordion>
+
+  <Accordion title="Database error: Type 'event_type' does not exist" icon="circle-exclamation">
+    **Symptoms:** Errors when creating calendar events or tasks
+
+    **Solutions:**
+    1. Ensure you ran the complete `supabase/schema.sql` script
+    2. The script includes custom ENUM types that must be created
+    3. Re-run the schema script in Supabase SQL Editor
+    4. Check for SQL execution errors in Supabase logs
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Environment Variables" icon="gear" href="/deployment/environment-variables">
+    Complete reference for all configuration options.
+  </Card>
+
+  <Card title="Supabase Setup" icon="database" href="/deployment/supabase-setup">
+    Detailed guide for database configuration and RLS policies.
+  </Card>
+
+  <Card title="Docker Deployment" icon="docker" href="/deployment/docker">
+    Advanced Docker configuration and optimization.
+  </Card>
+
+  <Card title="Deploy to Vercel" icon="triangle" href="/deployment/vercel">
+    Deploy to production with Vercel's serverless platform.
+  </Card>
+</CardGroup>
+
+<Note>
+  For local development help, see the [Architecture](/technical/architecture) documentation or review the `docs/` folder in the repository.
+</Note>

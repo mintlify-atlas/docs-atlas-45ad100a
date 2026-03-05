@@ -1,0 +1,350 @@
+---
+title: "Creating Smart Routines"
+description: "Understand how the routine engine generates optimized daily schedules and learn to customize them"
+---
+
+Estudio Three's intelligent routine engine automatically generates personalized daily schedules based on your profile, commitments, and energy levels.
+
+## How the Routine Engine Works
+
+The routine solver uses a sophisticated algorithm to create optimal schedules:
+
+<Steps>
+  <Step title="1. Create Fixed Blocks">
+    The engine first locks in your non-negotiable commitments:
+    
+    - **School/Classes** - From your class schedule (Monday-Friday)
+    - **Training Sessions** - Main and secondary activities
+    - **Events** - Exams, matches, competitions
+    - **Sleep** - Your bedtime as a visual anchor
+    
+    These blocks are marked as `isLocked: true` and cannot be moved.
+  </Step>
+
+  <Step title="2. Find Free Time Slots">
+    The system identifies gaps between fixed blocks:
+    
+    - Starts from your wake time
+    - Ends at your bedtime  
+    - Minimum gap size: 15 minutes
+    - Filters out unusable tiny gaps
+    
+    Each free slot becomes available for task allocation.
+  </Step>
+
+  <Step title="3. Create Task Queue">
+    The engine generates a prioritized list of tasks:
+    
+    **Academic Tasks:**
+    - One study task per subject
+    - Duration = `difficulty × 20 minutes` (minimum 30 min)
+    - Priority = difficulty level (1-5)
+    - Energy cost = `difficulty + 5`
+    
+    **Habit Tasks:**
+    - Reading habit (30 minutes, priority 5)
+    - Low energy cost (2 units)
+    
+    Tasks are sorted by priority (highest first).
+  </Step>
+
+  <Step title="4. Allocate Tasks with Energy Management">
+    The solver places tasks into free slots using a first-fit strategy:
+    
+    **Energy Budget:**
+    - Maximum daily cognitive load: 5500 units
+    - Load = `duration × energyCost`
+    - High-difficulty tasks consume more energy
+    
+    **Allocation Logic:**
+    1. Take the highest priority task
+    2. Check if it fits within energy budget
+    3. Find the first slot with enough time
+    4. If task is too large, fragment it across multiple slots
+    5. Apply focus strategy (Pomodoro, 50-10, or 90-15)
+    6. Update slot availability and energy consumed
+    7. Repeat until energy depleted or no slots remain
+    
+    <Note>
+    If a task would exceed the daily energy limit, the engine reduces its duration to fit the remaining energy budget.
+    </Note>
+  </Step>
+
+  <Step title="5. Expand Sessions with Breaks">
+    Each study task is expanded into focus/break cycles:
+    
+    **Pomodoro (Default):**
+    - 25 minutes focus + 5 minutes break
+    - Long break (15 min) after 4 sessions
+    
+    **50-10 Strategy:**
+    - 50 minutes focus + 10 minutes break
+    - Long break (30 min) after 3 sessions
+    
+    **90-15 Strategy:**
+    - 90 minutes focus + 15 minutes break
+    - Long break (45 min) after 2 sessions
+    
+    The expander continues until the task duration is consumed or the slot runs out.
+  </Step>
+
+  <Step title="6. Sort and Return">
+    Final routine blocks are sorted chronologically by start time and returned to the dashboard.
+  </Step>
+</Steps>
+
+## Understanding Routine Blocks
+
+Your routine consists of different block types:
+
+### Fixed Blocks
+
+Immutable commitments from your profile:
+
+```typescript
+{
+  type: 'FIXED',
+  category: 'ACADEMIC' | 'SPORT' | 'HEALTH',
+  isLocked: true,
+  energyCost: 7-10
+}
+```
+
+- **School/Classes** - ACADEMIC, cost: 7
+- **Main Training** - SPORT, cost: 9
+- **Secondary Training** - SPORT, cost: 9  
+- **Events** - SPORT, cost: 10
+- **Sleep** - HEALTH, cost: 0
+
+### Flexible Blocks
+
+Generated study sessions that can be adjusted:
+
+```typescript
+{
+  type: 'FLEXIBLE',
+  category: 'ACADEMIC' | 'LEISURE',
+  isLocked: false,
+  energyCost: difficulty + 5,
+  isCompleted: false
+}
+```
+
+- Appear in focus/break pairs
+- Can be marked complete
+- Subject to energy budget
+
+### Buffer Blocks
+
+Short breaks between focus sessions:
+
+```typescript
+{
+  type: 'BUFFER',
+  category: 'BREAK',
+  energyCost: 1
+}
+```
+
+## Energy Load System
+
+The engine carefully manages your daily energy:
+
+<Accordion title="Cognitive Load">
+  Mental energy consumed by academic and leisure tasks.
+  
+  **Calculation:** `duration × energyCost`
+  
+  **Example:**  
+  - Math (difficulty 5) for 100 minutes = `100 × 10 = 1000 units`
+  - Reading habit for 30 minutes = `30 × 2 = 60 units`
+  
+  **Sources:**
+  - School classes
+  - Study sessions  
+  - Academic events
+  - Leisure activities
+</Accordion>
+
+<Accordion title="Physical Load">
+  Energy consumed by sports and physical activities.
+  
+  **Calculation:** Same formula as cognitive
+  
+  **Sources:**
+  - Main training sessions
+  - Secondary activities
+  - Sports events/matches
+  
+  <Note>
+  High physical load on a given day reduces the cognitive work that can be scheduled.
+  </Note>
+</Accordion>
+
+<Accordion title="Daily Energy Budget">
+  Maximum combined load: **5500 units**
+  
+  When this limit is reached:
+  - No more academic tasks are scheduled
+  - Remaining tasks are skipped
+  - Or task durations are reduced to fit
+  
+  This prevents burnout and overcommitment.
+</Accordion>
+
+## Task Fragmentation
+
+When a task doesn't fit completely in a free slot:
+
+1. The engine calculates how much can fit
+2. Creates a partial task labeled "(Parte 1)"
+3. Schedules that fragment in the current slot
+4. Pushes the remainder "(Parte 2)" back to the queue
+5. Continues with the next slot
+
+<Tip>
+Fragmentation ensures no time goes to waste, even with irregularly sized gaps in your schedule.
+</Tip>
+
+## Customizing Your Routine
+
+### Change Focus Strategy
+
+Update your focus preferences in Settings:
+
+- **Pomodoro** - Short, frequent breaks (25/5)
+- **50-10** - Medium sessions for steady flow
+- **90-15** - Long deep work sessions (advanced)
+- **Custom** - Define your own focus/break durations
+
+<Warning>
+Your focus strategy affects how study blocks are expanded. Changing strategies will regenerate your routine.
+</Warning>
+
+### Adjust Subject Difficulty
+
+In your profile settings:
+
+1. Navigate to Subjects
+2. Edit a subject's difficulty rating
+3. Save changes
+4. Routine regenerates with new allocations
+
+**Impact:**
+- Higher difficulty = More study time allocated
+- Higher difficulty = More energy consumed
+- Higher priority in task queue
+
+### Update Commitments
+
+Modify your schedules in Settings:
+
+- **Class Schedule** - Add/remove school hours
+- **Training Schedule** - Adjust activity times
+- **Events** - Add upcoming exams or matches
+
+Routines auto-regenerate when you save changes.
+
+## Routine Generation Triggers
+
+Your routine is automatically regenerated when:
+
+- ✅ You complete onboarding
+- ✅ You update your profile in Settings
+- ✅ You add/edit/delete calendar events  
+- ✅ You change your focus strategy
+- ✅ A new day begins (daily refresh)
+
+<Note>
+Regenerations are instant and happen in the background. The dashboard updates automatically.
+</Note>
+
+## Working with Generated Routines
+
+### Viewing Your Routine
+
+The daily routine appears on your dashboard:
+
+- **Timeline View** - Chronological list of blocks
+- **Progress Bars** - Cognitive and physical load visualization
+- **Completion Status** - Mark tasks as done
+
+### Marking Tasks Complete
+
+Click the checkbox on flexible blocks to mark them complete:
+
+- Visual confirmation with strikethrough
+- Progress tracking
+- XP rewards (if achievements enabled)
+
+### Handling Conflicts
+
+If your schedule changes mid-day:
+
+1. Update your profile or calendar
+2. The routine will regenerate
+3. Review the new schedule
+4. Adjust as needed
+
+<Tip>
+The engine is designed to be flexible. Don't worry about perfection - iterate and adjust as you learn what works for you.
+</Tip>
+
+## Understanding Solver Behavior
+
+<Accordion title="Why didn't all my subjects get scheduled?">
+  Possible reasons:
+  - Daily energy budget reached (5500 units)
+  - Not enough free time slots
+  - High physical load from sports reducing cognitive capacity
+  - Very high difficulty subjects consuming all energy
+  
+  **Solution:** Reduce subject difficulty ratings or add more free time.
+</Accordion>
+
+<Accordion title="Why are tasks fragmented?">
+  Fragmentation happens when continuous blocks don't fit in available gaps.
+  
+  **Example:** You have a 90-minute study task but only two 50-minute gaps. The engine creates:
+  - Part 1: 50 minutes in first gap
+  - Part 2: 40 minutes in second gap
+  
+  This maximizes time utilization.
+</Accordion>
+
+<Accordion title="Can I manually edit the routine?">
+  Not directly. The routine is auto-generated. However, you can:
+  - Adjust the inputs (profile, schedule, difficulty)
+  - Change focus strategies
+  - Mark blocks complete to skip them
+  
+  The engine regenerates based on your preferences.
+</Accordion>
+
+<Accordion title="What if I prefer manual planning?">
+  Estudio Three is designed for automated optimization. If you prefer manual control:
+  - Use the Calendar feature for events
+  - Use the Pomodoro timer standalone
+  - Set very low difficulty ratings to minimize auto-scheduling
+</Accordion>
+
+## Best Practices
+
+1. **Start with accurate data** - Garbage in, garbage out
+2. **Review daily** - Check your routine each morning
+3. **Track completion** - Mark tasks done for accurate progress
+4. **Adjust gradually** - Fine-tune difficulty ratings over time
+5. **Respect energy limits** - Don't override the 5500 unit cap mentally
+6. **Use focus mode** - Activate Zen mode during study blocks
+7. **Sync events** - Keep calendar up to date with exams/matches
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Focus Mode" icon="eye" href="/guides/focus-mode">
+    Activate Zen mode during study sessions
+  </Card>
+  <Card title="Calendar Events" icon="calendar" href="/guides/calendar-events">
+    Manage exams, matches, and important dates
+  </Card>
+</CardGroup>

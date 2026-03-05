@@ -1,0 +1,390 @@
+---
+title: Habits & Goals
+description: Daily habit tracking and long-term goal management system for building consistency and achieving milestones
+---
+
+# Habits & Goals
+
+Estudio Three's Habits & Goals features help student-athletes build consistency through daily habit tracking while working toward long-term objectives with progress monitoring and milestone tracking.
+
+## What It Does
+
+Two complementary systems work together:
+
+**Habits**: Track daily actions you want to make automatic (reading, hydration, stretching)
+
+**Goals**: Track long-term objectives with milestones and progress indicators (make varsity team, achieve 3.5 GPA)
+
+<CardGroup cols={2}>
+  <Card title="Daily Habit Tracking" icon="check-circle">
+    Simple daily checkboxes for building consistent routines
+  </Card>
+  <Card title="Streak Counting" icon="flame">
+    Visual streak indicators to maintain motivation
+  </Card>
+  <Card title="Goal Milestones" icon="flag-checkered">
+    Break large goals into measurable steps
+  </Card>
+  <Card title="Progress Visualization" icon="chart-line">
+    See exactly how far you've come toward each goal
+  </Card>
+</CardGroup>
+
+## Why It Matters
+
+Student-athletes benefit from habit tracking because:
+- **Consistency is key** in both athletics and academics
+- **Small daily actions** compound into major results
+- **Visual progress** maintains motivation during difficult periods
+- **Structured systems** reduce decision fatigue
+- **Accountability** through tracking increases follow-through
+
+Goal tracking provides:
+- **Clear direction** when balancing many priorities
+- **Milestone validation** that you're progressing
+- **Long-term perspective** beyond daily tasks
+- **Achievement system** for both athletic and academic success
+
+## Habits System
+
+### How to Use Habits
+
+#### Creating a Habit
+
+1. Navigate to **Habits** page
+2. Click **"+ New Habit"**
+3. Enter habit details:
+   - **Title**: Clear, actionable ("Read 10 pages", "Stretch for 10 minutes")
+   - **Description**: Optional reminder of why it matters
+4. Click **Save**
+
+The habit now appears in your daily list.
+
+<Tip>
+Start with 2-3 habits maximum. Master those before adding more. Too many habits leads to overwhelm and abandonment.
+</Tip>
+
+#### Completing Daily Habits
+
+1. Open Habits page
+2. View **"Pending Today"** section
+3. Click the circle next to completed habits
+4. Habit moves to **"Completed Today"** section
+5. Streak counter increments
+
+<Note>
+Habits reset daily at midnight. Yesterday's completion doesn't carry over—you must check it again today.
+</Note>
+
+#### Tracking Streaks
+
+Each habit card displays:
+- **Current Streak**: Consecutive days completed
+- **Best Streak**: Longest streak ever achieved
+- **Completion Rate**: Percentage of days completed
+
+**Streak Rules**:
+- Complete habit today → streak continues
+- Miss one day → streak resets to 0
+- Best streak is preserved for motivation
+
+### Example Habits for Student-Athletes
+
+<CardGroup cols={2}>
+  <Card title="Academic Habits" icon="book">
+    - Read for 20 minutes
+    - Review notes from today
+    - Plan tomorrow's schedule
+    - Practice one problem set
+  </Card>
+  <Card title="Athletic Habits" icon="dumbbell">
+    - Morning stretching routine
+    - Log training session
+    - Ice/recovery protocol
+    - Visualization practice
+  </Card>
+  <Card title="Wellness Habits" icon="heart">
+    - Drink 2L water
+    - 8 hours sleep
+    - Healthy breakfast
+    - 10-minute meditation
+  </Card>
+  <Card title="Personal Habits" icon="star">
+    - Gratitude journaling
+    - Call family/friend
+    - Learn one new thing
+    - Evening reflection
+  </Card>
+</CardGroup>
+
+### Technical Details (Habits)
+
+**Store**: `src/stores/useHabitsStore.ts`
+
+**Data Structure**:
+
+```typescript
+interface Habit {
+  id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  createdAt: string;
+  logs: HabitLog[];  // completion history
+}
+
+interface HabitLog {
+  id: string;
+  habit_id: string;
+  date: string;      // YYYY-MM-DD format
+  completed: boolean;
+}
+```
+
+**Key Methods**:
+- `fetchHabits()` - Load habits and logs from Supabase
+- `addHabit(data)` - Create new habit
+- `toggleHabitCompletion(habitId)` - Check/uncheck for today
+- `deleteHabit(habitId)` - Remove habit and all logs
+- `getCurrentStreak(habitId)` - Calculate consecutive days
+- `getBestStreak(habitId)` - Find longest historical streak
+
+**Component**: `src/features/habits/pages/HabitsPage.tsx:63`
+
+Features:
+- Auto-fetches habits on mount
+- Separates pending and completed habits
+- Shows streak indicators
+- Empty state with onboarding
+
+**Completion Logic**:
+
+```typescript
+const todayStr = new Date().toISOString().split('T')[0];
+
+function toggleHabitCompletion(habitId: string) {
+  const habit = habits.find(h => h.id === habitId);
+  const todayLog = habit.logs.find(l => l.date === todayStr);
+  
+  if (todayLog) {
+    // Already logged today, toggle completion
+    todayLog.completed = !todayLog.completed;
+  } else {
+    // No log for today, create one
+    habit.logs.push({
+      id: crypto.randomUUID(),
+      habit_id: habitId,
+      date: todayStr,
+      completed: true
+    });
+  }
+  
+  // Sync to Supabase
+  await supabase.from('habit_logs').upsert(todayLog);
+}
+```
+
+## Goals System
+
+### How to Use Goals
+
+#### Creating a Goal
+
+1. Navigate to **Goals** page
+2. Click **"+ Add Goal"**
+3. Fill in goal details:
+   - **Title**: Specific outcome ("Make Varsity Team", "Achieve 3.5 GPA")
+   - **Description**: Why this matters, context, motivation
+   - **Category**: Academic, Athletic, Personal, Health
+   - **Target Date**: When you want to achieve this
+   - **Milestones**: Break goal into 3-5 measurable steps
+4. Click **Save**
+
+#### Managing Milestones
+
+When creating a goal, add milestones:
+
+**Example: "Achieve 3.5 GPA"**
+- Milestone 1: Bring Math grade to B+ (by Feb 15)
+- Milestone 2: Complete all extra credit in English (by Mar 1)
+- Milestone 3: Ace Physics final (by May 20)
+- Milestone 4: Maintain 90%+ on all homework
+
+Each milestone:
+- Has its own due date
+- Can be marked complete independently
+- Updates overall goal progress
+
+#### Tracking Progress
+
+Goal cards display:
+- **Progress bar**: % of milestones completed
+- **Status**: Active, In Progress, Completed, Abandoned
+- **Days remaining**: Time until target date
+- **Category badge**: Visual categorization
+- **Milestone list**: Check off as you complete them
+
+<Tip>
+Review goals weekly. Adjust milestones and target dates as needed. Goals should challenge you but remain achievable.
+</Tip>
+
+### Example Goals for Student-Athletes
+
+<Accordion title="Athletic Goals">
+  **Goal**: Make Starting Lineup
+  - Milestone: Improve vertical jump by 3 inches
+  - Milestone: Master new offensive play package
+  - Milestone: Consistent 90%+ attendance at practice
+  - Milestone: Positive feedback from coach in review
+  
+  **Goal**: Break Personal Record
+  - Milestone: Improve training time by 5%
+  - Milestone: Complete strength training program
+  - Milestone: Work with sports psychologist on mental game
+  - Milestone: Compete in 3 regional competitions
+</Accordion>
+
+<Accordion title="Academic Goals">
+  **Goal**: 3.5+ GPA This Semester
+  - Milestone: Complete all homework on time
+  - Milestone: Attend all office hours for difficult subjects
+  - Milestone: Study 10 hours/week minimum
+  - Milestone: Ace midterms in core subjects
+  
+  **Goal**: Get Accepted to Target University
+  - Milestone: SAT score of 1400+
+  - Milestone: Complete 3 meaningful extracurriculars
+  - Milestone: Write compelling personal essay
+  - Milestone: Get 2 strong recommendation letters
+</Accordion>
+
+<Accordion title="Personal Goals">
+  **Goal**: Improve Time Management
+  - Milestone: Use Estudio Three daily for 30 days
+  - Milestone: Plan every week on Sunday
+  - Milestone: Complete 80%+ of scheduled tasks
+  - Milestone: Reduce late-night cramming to once/month
+  
+  **Goal**: Build Mental Resilience
+  - Milestone: Daily meditation for 21 days
+  - Milestone: Read 2 books on mental toughness
+  - Milestone: Implement pre-game routine
+  - Milestone: Recover from setback within 24 hours
+</Accordion>
+
+### Technical Details (Goals)
+
+**Store**: `src/stores/useGoalsStore.ts`
+
+**Data Structure**:
+
+```typescript
+interface Goal {
+  id: string;
+  user_id: string;
+  title: string;
+  description: string;
+  category: 'academic' | 'athletic' | 'personal' | 'health';
+  targetDate?: string;     // ISO date
+  isCompleted: boolean;
+  completedAt?: string;
+  createdAt: string;
+  milestones: Milestone[];
+}
+
+interface Milestone {
+  id: string;
+  goal_id: string;
+  title: string;
+  isCompleted: boolean;
+  completedAt?: string;
+  dueDate?: string;
+  order: number;           // display order
+}
+```
+
+**Key Methods**:
+- `fetchGoals()` - Load goals from Supabase
+- `addGoal(goalData)` - Create new goal with milestones
+- `updateGoal(goalId, updates)` - Modify goal
+- `deleteGoal(goalId)` - Remove goal and milestones
+- `toggleGoalCompletion(goalId)` - Mark goal complete
+- `addMilestone(goalId, milestone)` - Add milestone to goal
+- `toggleMilestone(goalId, milestoneId)` - Complete milestone
+- `getProgress(goalId)` - Calculate % complete
+
+**Component**: `src/features/goals/components/GoalsPage.tsx:10`
+
+Features:
+- Separates active and completed goals
+- Grid layout for multiple goals
+- Goal card with progress visualization
+- Empty state for new users
+- Edit mode for updating goals
+
+**Progress Calculation**:
+
+```typescript
+function getProgress(goalId: string): number {
+  const goal = goals.find(g => g.id === goalId);
+  if (!goal || goal.milestones.length === 0) return 0;
+  
+  const completed = goal.milestones.filter(m => m.isCompleted).length;
+  return (completed / goal.milestones.length) * 100;
+}
+```
+
+## Integration with Other Features
+
+- **Smart Routines**: Habits can be scheduled into daily routine blocks
+- **AI Coach**: Can see your habits and goals to provide contextual advice
+- **Achievements**: Unlock badges for habit streaks and goal completions
+- **Task Management**: Goals can spawn related tasks
+- **Calendar**: Goal target dates appear on calendar
+
+## Best Practices
+
+<CardGroup cols={1}>
+  <Card title="Start Small with Habits" icon="seedling">
+    Begin with 1-2 easy habits. Once they feel automatic (21 days), add more. Trying to change everything at once leads to failure.
+  </Card>
+  <Card title="Make Goals SMART" icon="target">
+    Specific, Measurable, Achievable, Relevant, Time-bound. "Get better at math" is vague. "Raise math grade from C to B+ by end of semester" is SMART.
+  </Card>
+  <Card title="Review Weekly" icon="calendar-check">
+    Every Sunday (or your planning day): Review habit streaks, check goal progress, adjust milestones, celebrate wins.
+  </Card>
+  <Card title="Celebrate Milestones" icon="party-popper">
+    When you complete a milestone or hit a streak record, acknowledge it. Small celebrations maintain motivation.
+  </Card>
+</CardGroup>
+
+## Common Pitfalls
+
+<Accordion title="Too Many Habits at Once">
+  **Problem**: Trying to track 10+ habits simultaneously
+  
+  **Solution**: Pick your top 3 most impactful habits. Master those first. Add one new habit per month maximum.
+</Accordion>
+
+<Accordion title="Vague Goals">
+  **Problem**: Goals like "Get better grades" or "Improve fitness"
+  
+  **Solution**: Make goals specific and measurable. What grade? By when? How will you measure improvement?
+</Accordion>
+
+<Accordion title="All-or-Nothing Thinking">
+  **Problem**: Missing one day breaks your streak, so you give up entirely
+  
+  **Solution**: Expect to miss occasional days. What matters is getting back on track immediately. One missed day ≠ failure.
+</Accordion>
+
+<Accordion title="Goals Without Milestones">
+  **Problem**: Large goals feel overwhelming and distant
+  
+  **Solution**: Break every goal into 3-5 milestones. Progress becomes visible and achievable.
+</Accordion>
+
+---
+
+**Next Steps**: Get personalized guidance from the [AI Coach](/features/ai-coach) to optimize your habits and achieve your goals faster.

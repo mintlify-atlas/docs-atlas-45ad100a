@@ -1,0 +1,254 @@
+---
+title: Task Management
+description: Comprehensive task tracking system with priorities, subtasks, and Pomodoro integration for student-athletes
+---
+
+# Task Management
+
+Estudio Three's task management system helps student-athletes organize their academic workload, track progress with subtasks, and integrate seamlessly with the Pomodoro timer for focused work sessions.
+
+## What It Does
+
+The task management feature provides a complete system for organizing, prioritizing, and completing tasks. It's designed specifically for student-athletes who need to balance demanding schedules with academic requirements.
+
+<CardGroup cols={2}>
+  <Card title="Priority Levels" icon="flag">
+    Four priority levels (urgent, high, medium, low) with color coding for quick visual recognition
+  </Card>
+  <Card title="Subtasks" icon="list-check">
+    Break down complex tasks into manageable subtasks with individual completion tracking
+  </Card>
+  <Card title="Status Tracking" icon="circle-check">
+    Three status states: pending, in-progress, and completed with visual indicators
+  </Card>
+  <Card title="Pomodoro Integration" icon="timer">
+    Link tasks to Pomodoro sessions and track estimated vs completed work blocks
+  </Card>
+</CardGroup>
+
+## Why It Matters
+
+Student-athletes face unique challenges:
+- **Time constraints** between training, classes, and competitions
+- **Mental fatigue** from physical and academic demands
+- **Complex projects** that need to be broken down into manageable chunks
+- **Priority conflicts** when everything feels urgent
+
+The task system addresses these challenges with smart prioritization, visual progress tracking, and integration with focus techniques.
+
+## How to Use It
+
+### Creating a Task
+
+1. Click the **+ button** in the top-right corner
+2. Enter task title and optional description
+3. Set priority level (urgent, high, medium, or low)
+4. Optionally add a due date
+5. Configure recurring pattern if needed (daily, weekly, monthly)
+6. Estimate Pomodoro sessions required
+
+### Managing Subtasks
+
+1. Click on any task to expand it
+2. Use the subtask input field at the bottom
+3. Press **Enter** to add a new subtask
+4. Click the circle icon to mark subtasks complete
+5. Track progress with the visual progress bar
+
+### Filtering & Sorting
+
+Use the filter buttons to view:
+- **All** - Shows every task
+- **Pending** - Tasks not yet completed
+- **In Progress** - Tasks currently being worked on
+- **Completed** - Finished tasks (shown with reduced opacity)
+
+<Tip>
+Click the "Focus" button on any task to automatically link it to your next Pomodoro session. This helps maintain context and track time invested.
+</Tip>
+
+### Recurring Tasks
+
+For habits and regular activities:
+1. Enable "Is Recurring" when creating a task
+2. Select pattern: daily, weekly, or monthly
+3. The task automatically regenerates after completion
+4. Perfect for daily study routines or weekly reviews
+
+## Key Capabilities
+
+### Priority System
+
+The priority colors are used throughout the interface:
+
+```typescript
+const PRIORITY_COLORS = {
+  urgent: 'bg-red-500',      // Red - immediate attention
+  high: 'bg-orange-500',     // Orange - important
+  medium: 'bg-blue-500',     // Blue - normal priority
+  low: 'bg-muted-foreground/40' // Gray - when time allows
+};
+```
+
+### Status Icons
+
+- **Pending** (Circle): Task not started
+- **In Progress** (CircleDot): Currently working on this
+- **Completed** (CheckCircle2): Task finished
+
+### Pomodoro Tracking
+
+Each task displays:
+- Estimated Pomodoros (optional)
+- Completed Pomodoros
+- Visual indicator: 🍅 3/5 shows 3 of 5 estimated sessions complete
+
+<Note>
+Pomodoros are automatically tracked when you complete a focus session with that task active.
+</Note>
+
+## Technical Details
+
+### Data Structure
+
+Tasks are stored with the following TypeScript interface:
+
+```typescript
+interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  priority: 'urgent' | 'high' | 'medium' | 'low';
+  dueDate?: string;
+  isRecurring: boolean;
+  recurringPattern?: 'daily' | 'weekly' | 'monthly';
+  pomodorosEstimated?: number;
+  pomodorosCompleted: number;
+  subtasks: Subtask[];
+  createdAt: string;
+  completedAt?: string;
+}
+
+interface Subtask {
+  id: string;
+  title: string;
+  isCompleted: boolean;
+}
+```
+
+### State Management
+
+The app uses Zustand for state management with Supabase persistence:
+
+**Location**: `src/stores/useTaskStore.ts`
+
+Key methods:
+- `fetchTasks()` - Load tasks from Supabase
+- `addTask()` - Create new task with options
+- `updateTask()` - Modify existing task
+- `deleteTask()` - Remove task permanently
+- `toggleTaskStatus()` - Cycle through pending → in_progress → completed
+- `addSubtask()` - Add subtask to a task
+- `toggleSubtask()` - Mark subtask complete/incomplete
+- `getFilteredTasks()` - Apply current filter and sort
+
+### Components
+
+**TaskListPage** (`src/features/tasks/components/TaskListPage.tsx:201`)
+- Main task list view with filters
+- Handles empty states
+- Renders TaskCard components
+
+**TaskCard** (`src/features/tasks/components/TaskListPage.tsx:35`)
+- Individual task display with expand/collapse
+- Status toggle, delete confirmation
+- Subtask management UI
+- Focus button for Pomodoro integration
+
+**TaskForm** (`src/features/tasks/components/TaskForm.tsx`)
+- Modal form for creating/editing tasks
+- Includes all task properties
+- Validation and sanitization
+
+### Database Schema
+
+Tasks are stored in Supabase with the following structure:
+
+```sql
+tasks (
+  id UUID PRIMARY KEY,
+  user_id UUID REFERENCES users(id),
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT CHECK (status IN ('pending', 'in_progress', 'completed')),
+  priority TEXT CHECK (priority IN ('urgent', 'high', 'medium', 'low')),
+  due_date TEXT,
+  is_recurring BOOLEAN DEFAULT false,
+  recurrence_pattern TEXT,
+  pomodoros_estimated INTEGER,
+  pomodoros_completed INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT now(),
+  completed_at TIMESTAMP
+)
+
+subtasks (
+  id UUID PRIMARY KEY,
+  task_id UUID REFERENCES tasks(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  is_completed BOOLEAN DEFAULT false
+)
+```
+
+## Workflow Example
+
+<Accordion title="Study Session Workflow">
+  1. Create task: "Study Chapter 5 - Physics"
+  2. Set priority: High
+  3. Add subtasks:
+     - Read section 5.1-5.3
+     - Complete practice problems
+     - Review key concepts
+     - Create flashcards
+  4. Estimate 3 Pomodoros
+  5. Click "Focus" to start first Pomodoro
+  6. Complete subtasks during focus sessions
+  7. Mark task complete when finished
+</Accordion>
+
+<Accordion title="Recurring Task Workflow">
+  1. Create task: "Daily Reading - 10 pages"
+  2. Enable recurring: Daily
+  3. Set priority: Medium
+  4. Complete task each day
+  5. Task automatically regenerates next day
+  6. Build streaks and track consistency
+</Accordion>
+
+## Best Practices
+
+<CardGroup cols={1}>
+  <Card title="Use Clear Titles" icon="heading">
+    Make task titles specific and actionable. "Study Physics Ch 5" is better than "Study".
+  </Card>
+  <Card title="Break Down Large Tasks" icon="sitemap">
+    Use subtasks for anything that takes more than 2 Pomodoros. This makes progress visible and reduces overwhelm.
+  </Card>
+  <Card title="Set Realistic Priorities" icon="balance-scale">
+    Not everything can be urgent. Reserve "urgent" for true deadlines within 24-48 hours.
+  </Card>
+  <Card title="Estimate Pomodoros" icon="clock">
+    Track your estimates vs actuals to improve time management skills over time.
+  </Card>
+</CardGroup>
+
+## Integration with Other Features
+
+- **Pomodoro Timer**: Active task appears in timer, Pomodoros auto-increment
+- **Smart Routines**: Tasks feed into the routine optimization engine
+- **AI Coach**: Coach can see active tasks and provide study suggestions
+- **Academic Tracking**: Link tasks to specific subjects for better planning
+
+---
+
+**Next Steps**: Learn about the [Pomodoro Timer](/features/pomodoro-timer) to maximize your focus during task execution.

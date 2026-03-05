@@ -1,0 +1,366 @@
+---
+title: "Focus Mode (Zen Mode)"
+description: "Enter distraction-free Zen mode with ambient sounds and integrated Pomodoro timer"
+---
+
+Zen Mode is Estudio Three's immersive focus environment that eliminates distractions and helps you maintain concentration during study sessions.
+
+## What is Zen Mode?
+
+Zen Mode is a fullscreen overlay that:
+
+- 🎯 **Removes visual distractions** - Clean, minimal interface
+- 🎵 **Plays ambient sounds** - Wind, rain, or café noise
+- ⏱️ **Integrates Pomodoro timer** - Track focus sessions
+- 🌙 **Creates calm atmosphere** - Gradient backgrounds and subtle animations
+
+<Tip>
+Use Zen Mode when working on high-difficulty subjects or during timed Pomodoro sessions.
+</Tip>
+
+## Activating Zen Mode
+
+<Steps>
+  <Step title="Start a Pomodoro Session">
+    Begin a focus session from your dashboard or routine timeline.
+    
+    The Pomodoro timer starts counting down based on your focus strategy:
+    - Pomodoro: 25 minutes
+    - 50-10: 50 minutes  
+    - 90-15: 90 minutes
+  </Step>
+
+  <Step title="Click the Zen Mode Toggle">
+    Look for the Zen Mode button in the Pomodoro timer controls.
+    
+    Click it to enter fullscreen focus mode.
+  </Step>
+
+  <Step title="Customize Your Environment">
+    Once in Zen Mode, you can:
+    - Select ambient sound type
+    - Adjust volume
+    - Control timer playback
+    
+    Controls auto-hide after 6 seconds to minimize distraction.
+  </Step>
+</Steps>
+
+## The Zen Mode Interface
+
+### Visual Design
+
+The Zen Mode overlay features:
+
+- **Dark Background** - 95% opacity black base
+- **Gradient Overlay** - Subtle primary color gradients
+- **Glow Effect** - Soft radial blur in center
+- **Minimalist Typography** - Large, easy-to-read timer
+
+<Note>
+The interface is designed following minimalist principles to keep your attention on the timer and your work, not the UI.
+</Note>
+
+### Giant Timer Display
+
+The centerpiece is a massive countdown timer:
+
+```
+  25:00
+  FOCUS SESSION
+```
+
+- **Format:** MM:SS
+- **Size:** 8rem (mobile) to 12rem (desktop)
+- **Style:** Gradient text with drop shadow
+- **Updates:** Real-time every second
+
+### Session Type Indicator
+
+Below the timer, you'll see:
+
+- **FOCUS SESSION** - During work periods
+- **SHORT BREAK** - During 5-10 minute breaks
+- **LONG BREAK** - During extended breaks
+
+### Auto-Hiding Controls
+
+Controls appear on mouse movement and hide after 6 seconds:
+
+- **Top Right Corner:** Sound controls and exit button
+- **Bottom Center:** Timer playback controls (play/pause/reset)
+- **Bottom Text:** Motivational quote
+
+<Accordion title="Why do controls auto-hide?">
+  Research shows that visible UI elements compete for attention during focus work. Auto-hiding controls after 6 seconds creates a truly distraction-free environment while keeping controls accessible when needed.
+</Accordion>
+
+## Ambient Sound Engine
+
+Zen Mode includes a custom-built Web Audio API sound engine that generates soothing ambient noise.
+
+### Available Sounds
+
+<Accordion title="🌬️ Wind (White Noise)">
+  **Type:** Filtered white noise
+  
+  **Characteristics:**
+  - Simulates gentle wind/breeze
+  - Low-pass filtered (600Hz cutoff)
+  - Subtle LFO modulation for natural variation
+  - Smooth fade-in/out (2 seconds)
+  
+  **Best for:** Deep concentration, blocking external noise
+  
+  **Technical:** Generates random samples with low-pass filter and 0.15Hz sine wave modulation
+</Accordion>
+
+<Accordion title="🌧️ Rain (Pink Noise)">
+  **Type:** Procedural pink noise
+  
+  **Characteristics:**
+  - Mimics steady rainfall
+  - Medium frequency response (1200Hz cutoff)
+  - Stereo spread for immersion
+  - Filtered through 7-pole IIR filter
+  
+  **Best for:** Relaxing focus, creative work
+  
+  **Technical:** Uses Voss algorithm for 1/f pink noise generation
+</Accordion>
+
+<Accordion title="☕ Café (Brown Noise)">
+  **Type:** Warm brown noise
+  
+  **Characteristics:**
+  - Simulates café ambiance murmur
+  - Heavy low-pass filtering (500Hz cutoff)
+  - Deep, warm bass frequencies
+  - Smooth, consistent texture
+  
+  **Best for:** Ambient background, reduces anxiety
+  
+  **Technical:** Brownian noise via random walk algorithm with integration
+</Accordion>
+
+### Sound Controls
+
+When controls are visible (top right):
+
+```
+[🌬️] [🌧️] [☕]  |  [🔊]
+```
+
+- **Sound Buttons** - Click to switch sound types
+- **Volume Toggle** - Mute/unmute (preserves last volume)
+- **Active Highlight** - Selected sound shows primary color
+
+<Tip>
+Experiment with different sounds to find what works best for you. Many users find wind noise best for blocking distractions, while café noise reduces anxiety.
+</Tip>
+
+### Volume Management
+
+The sound engine features:
+
+- **Default Volume:** 30% (0.3)
+- **Range:** 0% to 100%  
+- **Fade-in:** 2-second gradual increase on play
+- **Fade-out:** 1-second gradual decrease on stop
+- **Memory:** Last volume setting is preserved
+
+<Warning>
+Avoid setting volume above 50% for extended periods. Ambient noise is meant to be background audio, not foreground.
+</Warning>
+
+## Timer Controls
+
+While in Zen Mode, you have full Pomodoro timer control:
+
+### Playback Controls
+
+- **Play** - Start countdown
+- **Pause** - Freeze timer
+- **Reset** - Return to session duration
+
+<Note>
+These controls are the same as the standard Pomodoro timer - they're just styled for Zen Mode.
+</Note>
+
+### Session Transitions
+
+The timer automatically transitions between sessions:
+
+1. **Focus Session Ends** → Short Break begins
+2. **Short Break Ends** → Next Focus Session
+3. **4th Focus Session Ends** → Long Break begins
+4. **Long Break Ends** → Cycle restarts
+
+<Accordion title="What happens at session transitions?">
+  When a session completes:
+  - Timer resets to next session duration
+  - Session type label updates
+  - Ambient sound continues uninterrupted
+  - No browser notification (to avoid disruption)
+  
+  You stay in Zen Mode across session boundaries.
+</Accordion>
+
+## Exiting Zen Mode
+
+To leave Zen Mode:
+
+<Steps>
+  <Step title="Move your mouse">
+    Trigger the controls to appear (they auto-hide after 6 seconds).
+  </Step>
+
+  <Step title="Click the minimize button">
+    Look for the minimize icon (⬇️) in the top-right corner.
+    
+    Click it to exit fullscreen.
+  </Step>
+
+  <Step title="Return to dashboard">
+    You're back to the normal interface.
+    
+    The Pomodoro timer continues running in the standard view.
+  </Step>
+</Steps>
+
+<Note>
+Exiting Zen Mode does NOT stop your timer or sound. They continue playing in the background.
+</Note>
+
+## Technical Details
+
+### Sound Engine Implementation
+
+The `SoundEngine` class uses Web Audio API:
+
+```typescript
+class SoundEngine {
+  - AudioContext for sound generation
+  - BiquadFilterNode for frequency shaping
+  - GainNode for volume control  
+  - OscillatorNode for LFO modulation (wind only)
+  - AudioBufferSourceNode for playback
+}
+```
+
+**Buffer Generation:**
+- 4-second looping buffers
+- Stereo (2 channels)
+- Sample rate: System default (usually 44.1kHz or 48kHz)
+- Procedural generation (not recorded files)
+
+**Benefits:**
+- Zero network requests
+- Infinite playback without repetition artifacts
+- Tiny memory footprint
+- Cross-platform compatibility
+
+### Browser Compatibility
+
+Zen Mode works in all modern browsers:
+
+- ✅ Chrome/Edge 90+
+- ✅ Firefox 88+
+- ✅ Safari 14+ (including iOS)
+- ✅ Opera 76+
+
+<Warning>
+Web Audio API requires user interaction to start. You may need to click once to initialize audio on some browsers (especially Safari).
+</Warning>
+
+## Best Practices
+
+<Accordion title="When to use Zen Mode">
+  **Ideal situations:**
+  - Timed Pomodoro sessions
+  - High-difficulty subject study
+  - Noisy environments (use wind/rain to mask)
+  - Exam preparation
+  - Deep work requiring full concentration
+  
+  **Not ideal for:**
+  - Collaborative work
+  - Video lectures (audio conflict)
+  - Quick tasks under 10 minutes
+</Accordion>
+
+<Accordion title="Optimizing your focus environment">
+  1. **Close unnecessary tabs** - Zen Mode can't block notifications
+  2. **Silence your phone** - Physical distractions still matter
+  3. **Use comfortable headphones** - Better than speakers for ambient sound
+  4. **Adjust screen brightness** - Reduce eye strain in dark mode
+  5. **Position monitor properly** - Ergonomics affect focus
+</Accordion>
+
+<Accordion title="Sound selection strategy">
+  - **Wind** - Best for blocking variable external noise (traffic, voices)
+  - **Rain** - Best for creating calm, relaxed focus state
+  - **Café** - Best for reducing silence anxiety, mimics public study
+  
+  Try each for one Pomodoro session to find your preference.
+</Accordion>
+
+<Accordion title="Combining with routine blocks">
+  When your routine generates a study block:
+  1. Start the Pomodoro timer
+  2. Immediately enter Zen Mode
+  3. Work through the focus/break cycle
+  4. Exit Zen Mode when block completes
+  5. Mark routine block as complete
+  
+  This workflow integrates Zen Mode with the routine engine.
+</Accordion>
+
+## Keyboard Shortcuts
+
+<Note>
+Currently, Zen Mode does not support keyboard shortcuts. Use mouse/trackpad to interact with controls.
+</Note>
+
+## Troubleshooting
+
+<Accordion title="No sound playing">
+  **Possible causes:**
+  - Browser autoplay policy blocking audio
+  - System volume muted
+  - Volume toggle set to mute
+  
+  **Solution:**
+  - Click the volume button to unmute
+  - Check system audio settings
+  - Try clicking elsewhere on the page first (user interaction required)
+</Accordion>
+
+<Accordion title="Controls won't show">
+  **Cause:** Mouse movement not detected
+  
+  **Solution:**
+  - Try clicking anywhere on screen
+  - Move mouse more vigorously
+  - Check if in true fullscreen (F11)
+</Accordion>
+
+<Accordion title="Timer not syncing with routine">
+  **Cause:** Timer and routine are separate systems
+  
+  **Solution:**
+  - Manually start timer when beginning a routine block
+  - Mark routine block complete when timer finishes
+  - They're designed to work together but aren't auto-linked
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Routines" icon="calendar" href="/guides/creating-routines">
+    Learn how routines integrate with focus sessions
+  </Card>
+  <Card title="Achievements" icon="trophy" href="/guides/achievements">
+    Earn XP for completing focus sessions
+  </Card>
+</CardGroup>

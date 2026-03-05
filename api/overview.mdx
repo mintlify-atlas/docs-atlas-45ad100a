@@ -1,0 +1,164 @@
+---
+title: 'API Overview'
+description: 'Architecture and core concepts of the Estudio Three API'
+---
+
+# API Overview
+
+Estudio Three uses a modern serverless architecture with Supabase as the backend and Vercel for serverless functions.
+
+## Architecture
+
+### Backend Stack
+
+- **Supabase**: PostgreSQL database with real-time subscriptions
+- **Vercel Serverless Functions**: AI and translation endpoints
+- **Zustand Stores**: Client-side state management with Supabase sync
+- **Row Level Security (RLS)**: User data isolation at database level
+
+### Data Flow
+
+```typescript
+Client (Zustand Store) <-> Supabase API <-> PostgreSQL
+                      \-> Vercel Functions <-> External AI APIs
+```
+
+## Authentication
+
+All API operations require authentication via Supabase Auth. The system supports:
+
+- Email/Password authentication
+- OAuth providers (Google, GitHub)
+- Session-based access control
+- Automatic Row Level Security (RLS)
+
+See [Authentication](/api/authentication) for detailed implementation.
+
+## Base URLs
+
+<ResponseField name="Supabase API">
+  `https://[project-id].supabase.co`
+  
+  Configured via `VITE_SUPABASE_URL` environment variable
+</ResponseField>
+
+<ResponseField name="Vercel Functions">
+  `/api/*` endpoints deployed on your Vercel domain
+  
+  Example: `https://your-domain.vercel.app/api/ai`
+</ResponseField>
+
+## Rate Limiting
+
+### AI Coach Endpoint
+
+- **Limit**: 30 requests per minute per IP address
+- **Tracking**: In-memory rate limit map with 60-second sliding window
+- **Error Code**: `429` when limit exceeded
+
+```typescript
+// Rate limit response
+{
+  "error": "Demasiadas peticiones",
+  "code": 429
+}
+```
+
+### Supabase Operations
+
+- No explicit rate limits on read operations
+- Write operations protected by RLS policies
+- Connection pooling handles concurrent requests
+
+## Data Models
+
+The API operates on these core entities:
+
+- **Profiles**: User profiles with onboarding state
+- **Tasks**: Academic and personal tasks with subtasks
+- **Events**: Calendar events (exams, matches, training, classes)
+- **Routines**: Daily routine blocks (fixed and flexible)
+- **Focus Sessions**: Pomodoro-style work sessions
+- **Subjects**: Academic subjects with difficulty ratings
+- **Goals**: Long-term objectives with progress tracking
+
+## Error Handling
+
+All endpoints return consistent error formats:
+
+```typescript
+{
+  "error": string,  // Human-readable error message
+  "code": number    // HTTP status code
+}
+```
+
+### Common Error Codes
+
+- `400`: Bad request (missing or invalid parameters)
+- `401`: Unauthorized (invalid or missing authentication)
+- `403`: Forbidden (RLS policy violation)
+- `404`: Not found
+- `429`: Rate limit exceeded
+- `500`: Internal server error
+- `503`: Service unavailable (AI provider down)
+
+## Security
+
+### Row Level Security (RLS)
+
+All database tables have RLS policies that automatically filter data by `user_id`:
+
+```sql
+-- Example RLS policy
+create policy "Usuarios gestionan sus tareas" 
+  on tasks for all 
+  using ( auth.uid() = user_id );
+```
+
+This means users can only access their own data, even if they know other record IDs.
+
+### API Key Management
+
+- Supabase anonymous key is safe for client-side use
+- Vercel function secrets (e.g., `GROQ_API_KEY`) are server-side only
+- CORS is configured to allow requests from your app domain
+
+## Client Libraries
+
+### Supabase Client
+
+```typescript
+import { createClient } from '@supabase/supabase-js';
+
+export const supabase = createClient(
+  process.env.VITE_SUPABASE_URL,
+  process.env.VITE_SUPABASE_ANON_KEY
+);
+```
+
+### Store-based Operations
+
+Most API operations are abstracted through Zustand stores:
+
+- `useAuthStore`: Authentication and profile management
+- `useTaskStore`: Task CRUD operations
+- `useCalendarStore`: Event and calendar operations
+- `useRoutineStore`: Routine generation and management
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/api/authentication">
+    Learn about sign-up, sign-in, and session management
+  </Card>
+  <Card title="AI Coach" icon="brain" href="/api/ai-coach">
+    Integrate the AI coaching and translation endpoint
+  </Card>
+  <Card title="Tasks" icon="check" href="/api/tasks">
+    Manage tasks, subtasks, and recurring patterns
+  </Card>
+  <Card title="Calendar" icon="calendar" href="/api/calendar">
+    Work with events and weekly schedules
+  </Card>
+</CardGroup>

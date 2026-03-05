@@ -1,0 +1,540 @@
+---
+title: 'Routines'
+description: 'Daily routine generation engine with fixed and flexible blocks'
+---
+
+# Routines API
+
+The routine engine generates optimized daily schedules by combining fixed commitments (school, training, sleep) with flexible study blocks.
+
+## Engine Location
+
+`src/features/routine/engine/`
+
+## Core Concepts
+
+### Block Types
+
+```typescript
+type RoutineBlockType = 'FIXED' | 'FLEXIBLE' | 'BUFFER';
+```
+
+- **FIXED**: Immovable commitments (school, training, sleep)
+- **FLEXIBLE**: Automatically scheduled tasks (study sessions)
+- **BUFFER**: Breaks inserted between focus blocks
+
+### RoutineBlock Interface
+
+```typescript
+interface RoutineBlock {
+  id: string;                       // Unique identifier
+  type: RoutineBlockType;           // Block type
+  category: BlockCategory;          // 'ACADEMIC' | 'SPORT' | 'HEALTH' | 'LEISURE' | 'BREAK'
+  title: string;                    // Display title
+  priority: number;                 // Scheduling priority (1-5)
+  duration: number;                 // Duration in minutes
+  startTime: string;                // HH:MM format
+  isLocked: boolean;                // Cannot be modified if true
+  energyCost: number;               // Cognitive/physical load (0-10)
+  isCompleted?: boolean;            // Completion status
+}
+```
+
+### Energy Costs
+
+```typescript
+const ENERGY_COSTS = {
+  SCHOOL: 7,
+  STUDY_SECONDARY: 9,
+  STUDY_PRINCIPAL: 9,
+  ACADEMIC_EVENT: 10,
+  SLEEP: 0,
+  HABIT: 2,
+  STUDY: 5,
+  BREAK: 1
+};
+```
+
+## Main Functions
+
+### Create Fixed Blocks
+
+Generates fixed blocks from user profile.
+
+<ParamField path="profile" type="UserProfile" required>
+  User profile with schedules
+</ParamField>
+
+<ParamField path="date" type="Date" required>
+  Target date for routine
+</ParamField>
+
+```typescript
+import { createFixedBlocks } from '@/features/routine/engine';
+
+const profile = {
+  classSchedule: [
+    { day: 1, startTime: '09:00', endTime: '15:00' },  // Monday
+    { day: 2, startTime: '09:00', endTime: '15:00' }   // Tuesday
+  ],
+  trainingSchedule: [
+    { day: 3, startTime: '17:00', endTime: '19:00', isSecondary: false }  // Wednesday
+  ],
+  matchSchedule: [
+    { date: '2026-03-10', time: '19:00', opponent: 'Team A' }
+  ],
+  sleepSchedule: {
+    wakeTime: '07:00',
+    bedTime: '23:00'
+  }
+};
+
+const fixedBlocks = createFixedBlocks(profile, new Date('2026-03-10'));
+```
+
+**Returns:**
+```typescript
+[
+  {
+    id: 'fixed-school-0',
+    type: 'FIXED',
+    category: 'ACADEMIC',
+    title: 'Colegio / Clases',
+    priority: 1,
+    duration: 360,  // 6 hours
+    startTime: '09:00',
+    isLocked: true,
+    energyCost: 7
+  },
+  {
+    id: 'fixed-event-0',
+    type: 'FIXED',
+    category: 'SPORT',
+    title: 'Evento: Team A',
+    priority: 1,
+    duration: 120,
+    startTime: '19:00',
+    isLocked: true,
+    energyCost: 10
+  },
+  {
+    id: 'fixed-sleep',
+    type: 'FIXED',
+    category: 'HEALTH',
+    title: 'Hora de Dormir',
+    priority: 1,
+    duration: 60,
+    startTime: '23:00',
+    isLocked: true,
+    energyCost: 0
+  }
+]
+```
+
+### Find Free Slots
+
+Identifies gaps between fixed blocks for task scheduling.
+
+<ParamField path="fixedBlocks" type="RoutineBlock[]" required>
+  Array of fixed blocks
+</ParamField>
+
+<ParamField path="wakeTime" type="string" required>
+  Wake time in HH:MM format
+</ParamField>
+
+<ParamField path="bedTime" type="string" required>
+  Bedtime in HH:MM format
+</ParamField>
+
+```typescript
+import { findFreeSlots } from '@/features/routine/engine';
+
+const freeSlots = findFreeSlots(fixedBlocks, '07:00', '23:00');
+```
+
+**Returns:**
+```typescript
+[
+  {
+    startMinutes: 420,   // 07:00 (7 * 60)
+    endMinutes: 540,     // 09:00 (9 * 60)
+    duration: 120        // 2 hours
+  },
+  {
+    startMinutes: 900,   // 15:00
+    endMinutes: 1140,    // 19:00
+    duration: 240        // 4 hours
+  }
+]
+```
+
+**Algorithm:**
+1. Sorts fixed blocks by start time
+2. Iterates through blocks
+3. Creates slots for gaps ≥ 15 minutes
+4. Adds final slot before bedtime if applicable
+
+### Create Task Queue
+
+Generates prioritized tasks from user profile.
+
+<ParamField path="profile" type="UserProfile" required>
+  User profile with subjects
+</ParamField>
+
+```typescript
+import { createTaskQueue } from '@/features/routine/engine';
+
+const profile = {
+  subjects: [
+    { id: 'math-1', name: 'Matemáticas', difficulty: 5 },
+    { id: 'hist-1', name: 'Historia', difficulty: 3 }
+  ]
+};
+
+const taskQueue = createTaskQueue(profile);
+```
+
+**Returns:**
+```typescript
+[
+  {
+    id: 'math-1',
+    name: 'Estudiar: Matemáticas',
+    category: 'ACADEMIC',
+    baseDuration: 100,    // difficulty * 20 minutes
+    priority: 5,
+    energyCost: 10        // difficulty + 5
+  },
+  {
+    id: 'hist-1',
+    name: 'Estudiar: Historia',
+    category: 'ACADEMIC',
+    baseDuration: 60,
+    priority: 3,
+    energyCost: 8
+  },
+  {
+    id: 'habit-read',
+    name: 'Hábito: Lectura',
+    category: 'LEISURE',
+    baseDuration: 30,
+    priority: 5,
+    energyCost: 2
+  }
+]
+```
+
+**Sorting:** Descending by priority (highest priority first).
+
+### Expand Session
+
+Breaks a task into Focus/Break blocks using Pomodoro-style strategy.
+
+<ParamField path="task" type="EngineTask" required>
+  Task to schedule
+</ParamField>
+
+<ParamField path="slot" type="EngineTimeSlot" required>
+  Available time slot
+</ParamField>
+
+<ParamField path="preferences" type="FocusPreferences" required>
+  User's focus strategy
+</ParamField>
+
+<ParamField path="startTimeMinutes" type="number" required>
+  Start time in minutes since midnight
+</ParamField>
+
+```typescript
+import { expandSession, DEFAULT_STRATEGIES } from '@/features/routine/engine';
+
+const task = {
+  id: 'math-1',
+  name: 'Estudiar: Matemáticas',
+  category: 'ACADEMIC',
+  baseDuration: 75,
+  priority: 5,
+  energyCost: 10
+};
+
+const slot = {
+  startMinutes: 420,  // 07:00
+  endMinutes: 540,    // 09:00
+  duration: 120
+};
+
+const blocks = expandSession(
+  task,
+  slot,
+  DEFAULT_STRATEGIES['POMODORO'],
+  420
+);
+```
+
+**Returns:**
+```typescript
+[
+  {
+    id: 'generated-uuid-1',
+    type: 'FLEXIBLE',
+    category: 'ACADEMIC',
+    title: 'Estudiar: Matemáticas',
+    priority: 5,
+    duration: 25,
+    startTime: '07:00',
+    isLocked: false,
+    energyCost: 10,
+    isCompleted: false
+  },
+  {
+    id: 'generated-uuid-2',
+    type: 'BUFFER',
+    category: 'BREAK',
+    title: 'Break',
+    priority: 1,
+    duration: 5,
+    startTime: '07:25',
+    isLocked: false,
+    energyCost: 1,
+    isCompleted: false
+  },
+  // ... continues until 75 minutes filled
+]
+```
+
+#### Focus Strategies
+
+```typescript
+const DEFAULT_STRATEGIES = {
+  'POMODORO': {
+    strategy: 'POMODORO',
+    customConfig: {
+      focusDuration: 25,
+      shortBreakDuration: 5,
+      longBreakDuration: 15,
+      sessionsBeforeLongBreak: 4
+    }
+  },
+  '50-10': {
+    strategy: '50-10',
+    customConfig: {
+      focusDuration: 50,
+      shortBreakDuration: 10,
+      longBreakDuration: 30,
+      sessionsBeforeLongBreak: 3
+    }
+  },
+  '90-15': {
+    strategy: '90-15',
+    customConfig: {
+      focusDuration: 90,
+      shortBreakDuration: 15,
+      longBreakDuration: 45,
+      sessionsBeforeLongBreak: 2
+    }
+  }
+};
+```
+
+### Generate Daily Routine
+
+Main solver function that combines all components.
+
+<ParamField path="profile" type="UserProfile" required>
+  User profile
+</ParamField>
+
+<ParamField path="date" type="Date" required>
+  Target date
+</ParamField>
+
+<ParamField path="injectedTasks" type="EngineTask[]">
+  Optional custom tasks (overrides profile-based tasks)
+</ParamField>
+
+<ParamField path="injectedSlots" type="EngineTimeSlot[]">
+  Optional custom slots (overrides calculated slots)
+</ParamField>
+
+```typescript
+import { generateDailyRoutine } from '@/features/routine/engine';
+
+const routine = generateDailyRoutine(profile, new Date('2026-03-10'));
+```
+
+**Algorithm:**
+
+1. **Create Fixed Blocks:** Generates fixed commitments from profile
+2. **Find Free Slots:** Identifies gaps between fixed blocks
+3. **Create Task Queue:** Generates prioritized tasks from subjects
+4. **First-Fit Allocation:** Iterates through tasks (highest priority first)
+5. **Energy Check:** Ensures total daily load ≤ 5500 units
+6. **Fit or Fragment:**
+   - If task fits in slot: Schedule with breaks
+   - If task too large: Fragment and push remainder to queue
+7. **Sort Blocks:** Returns blocks sorted by start time
+
+**Energy Budget:**
+```typescript
+const MAX_DAILY_LOAD = 5500;
+const currentLoad = blocks.reduce((sum, b) => {
+  return sum + (b.duration * b.energyCost);
+}, 0);
+
+if (currentLoad + taskLoad > MAX_DAILY_LOAD) {
+  // Cap task duration or skip
+}
+```
+
+**Fragmentation Example:**
+```typescript
+// Task needs 90 minutes, but only 60 minutes available in slot
+// Result:
+// 1. Schedule 60-minute fragment in current slot
+// 2. Push 30-minute remainder to front of queue
+// 3. Remainder scheduled in next available slot
+```
+
+**Returns:** Complete routine with FIXED, FLEXIBLE, and BUFFER blocks.
+
+### Compute Routine Load
+
+Calculates total cognitive and physical load.
+
+<ParamField path="blocks" type="RoutineBlock[]" required>
+  Array of routine blocks
+</ParamField>
+
+```typescript
+import { computeRoutineLoad } from '@/features/routine/engine';
+
+const { totalCognitiveLoad, totalPhysicalLoad } = computeRoutineLoad(routine);
+
+console.log(`Cognitive load: ${totalCognitiveLoad}`);
+console.log(`Physical load: ${totalPhysicalLoad}`);
+```
+
+**Calculation:**
+```typescript
+for (const block of blocks) {
+  const score = block.energyCost * block.duration;
+  
+  if (['ACADEMIC', 'LEISURE'].includes(block.category)) {
+    totalCognitiveLoad += score;
+  } else if (block.category === 'SPORT') {
+    totalPhysicalLoad += score;
+  }
+  // 'BREAK' has no load
+}
+```
+
+## Engine Types
+
+### EngineTimeSlot
+
+```typescript
+interface EngineTimeSlot {
+  startMinutes: number;  // Minutes since midnight
+  endMinutes: number;    // Minutes since midnight
+  duration: number;      // Duration in minutes
+}
+```
+
+### EngineTask
+
+```typescript
+interface EngineTask {
+  id: string;
+  name: string;
+  category: 'ACADEMIC' | 'SPORT' | 'HEALTH' | 'LEISURE';
+  baseDuration: number;           // Minutes
+  priority: number;               // 1-5
+  energyCost: number;             // 0-10
+  preferredTime?: 'MORNING' | 'AFTERNOON' | 'EVENING';
+  deadline?: number;              // Timestamp
+}
+```
+
+## Example: Full Routine Generation
+
+```typescript
+import { generateDailyRoutine, computeRoutineLoad } from '@/features/routine/engine';
+import { useAuthStore } from '@/stores/useAuthStore';
+
+function generateRoutineForToday() {
+  const profile = useAuthStore.getState().profile;
+  
+  if (!profile) {
+    throw new Error('User profile not loaded');
+  }
+
+  // Generate routine for today
+  const routine = generateDailyRoutine(
+    profile,
+    new Date()
+  );
+
+  // Calculate loads
+  const { totalCognitiveLoad, totalPhysicalLoad } = computeRoutineLoad(routine);
+
+  console.log(`Generated ${routine.length} blocks`);
+  console.log(`Cognitive load: ${totalCognitiveLoad}`);
+  console.log(`Physical load: ${totalPhysicalLoad}`);
+
+  // Group by type
+  const fixed = routine.filter(b => b.type === 'FIXED');
+  const flexible = routine.filter(b => b.type === 'FLEXIBLE');
+  const buffers = routine.filter(b => b.type === 'BUFFER');
+
+  console.log(`Fixed: ${fixed.length}, Flexible: ${flexible.length}, Breaks: ${buffers.length}`);
+
+  return routine;
+}
+```
+
+## Database Storage
+
+Routines are stored in the database:
+
+```sql
+create table routines (
+  id uuid default gen_random_uuid() primary key,
+  user_id uuid references profiles(id) on delete cascade not null,
+  date date not null,
+  total_cogn_load int default 0,
+  total_phys_load int default 0,
+  created_at timestamp with time zone default now(),
+  unique(user_id, date)
+);
+
+create table routine_blocks (
+  id uuid default gen_random_uuid() primary key,
+  routine_id uuid references routines(id) on delete cascade not null,
+  title text not null,
+  description text,
+  type routine_block_type default 'FLEXIBLE',
+  start_time time,
+  duration int not null,
+  is_locked boolean default false,
+  is_completed boolean default false,
+  priority int default 0,
+  energy_cost int default 0,
+  task_id uuid references tasks(id) on delete set null,
+  event_id uuid references events(id) on delete set null
+);
+```
+
+## Best Practices
+
+<Check>**Energy Budget:** Always check total load to avoid overwhelming schedules.</Check>
+
+<Check>**Buffer Time:** Include breaks between study sessions for optimal performance.</Check>
+
+<Check>**Fragmentation:** Allow task fragmentation for better slot utilization.</Check>
+
+<Check>**Priority Ordering:** Schedule high-priority tasks first when energy is fresh.</Check>
+
+<Check>**Fixed First:** Always create fixed blocks before flexible scheduling.</Check>

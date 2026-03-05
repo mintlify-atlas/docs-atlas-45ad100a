@@ -1,0 +1,454 @@
+---
+title: "Calendar & Events"
+description: "Create and manage events, exams, matches, and weekly schedules in your personalized calendar"
+---
+
+The Calendar feature helps you track important dates, upcoming events, and recurring commitments. Events automatically integrate with the routine engine to block out time in your daily schedule.
+
+## Accessing the Calendar
+
+Navigate to the Calendar page from your dashboard sidebar:
+
+```
+📅 Calendar
+```
+
+The calendar view shows all your scheduled events with filtering and multiple view modes.
+
+## Creating an Event
+
+<Steps>
+  <Step title="Click 'New Event' button">
+    In the top-right corner of the calendar, click the **+ New Event** button.
+    
+    A modal form appears over the calendar.
+  </Step>
+
+  <Step title="Fill in event details">
+    **Required fields:**
+    - **Title** - Name of the event (e.g., "Math Final Exam")
+    - **Type** - Select from 6 event types
+    - **Date** - When the event occurs
+    
+    **Optional fields:**
+    - **Start Time** - When event begins (HH:MM format)
+    - **End Time** - When event ends (HH:MM format)
+    - **Description** - Additional notes or details
+  </Step>
+
+  <Step title="Select event type">
+    Choose the appropriate category:
+    
+    - 📝 **Exam** - Tests, quizzes, evaluations
+    - 🏆 **Match** - Sports competitions, games
+    - 🏃 **Training** - Practice sessions, workouts
+    - 📚 **Class** - Lectures, seminars
+    - 🎉 **Holiday** - Vacations, days off
+    - ⭐ **Other** - Miscellaneous events
+    
+    Event type affects visual styling and filtering.
+  </Step>
+
+  <Step title="Save the event">
+    Click **Create** to save the event.
+    
+    The modal closes and your event appears on the calendar.
+    
+    <Note>
+    Events are immediately synced to the cloud if you're signed in.
+    </Note>
+  </Step>
+</Steps>
+
+## Event Types Explained
+
+<Accordion title="📝 Exam">
+  **Use for:** Academic tests and evaluations
+  
+  **Routine Impact:**
+  - Marked as high-energy cost (10 units)
+  - Category: ACADEMIC
+  - Blocks 2 hours by default in routine
+  
+  **Styling:** Red/destructive color theme
+  
+  **Tips:**
+  - Create exam events 1-2 weeks in advance
+  - Use description field for exam topics/chapters
+  - Time field helps routine engine allocate pre-exam study
+</Accordion>
+
+<Accordion title="🏆 Match">
+  **Use for:** Sports competitions and games
+  
+  **Routine Impact:**
+  - Marked as high-energy cost (10 units)
+  - Category: SPORT
+  - Blocks 2 hours by default
+  
+  **Styling:** Primary color theme
+  
+  **Tips:**
+  - Include opponent in title (e.g., "Match vs. Team X")
+  - Set accurate start time for travel planning
+  - Consider pre-match and post-match recovery time
+</Accordion>
+
+<Accordion title="🏃 Training">
+  **Use for:** One-off training sessions outside your regular schedule
+  
+  **Routine Impact:**
+  - Medium energy cost (9 units)
+  - Category: SPORT
+  - Uses actual start/end time if provided
+  
+  **Styling:** Secondary color theme
+  
+  **Note:**
+  Your **regular** training schedule is set in onboarding/profile. Use training events only for exceptions or special sessions.
+</Accordion>
+
+<Accordion title="📚 Class">
+  **Use for:** Special lectures or one-time class sessions
+  
+  **Routine Impact:**
+  - Medium energy cost (7 units)
+  - Category: ACADEMIC
+  - Blocks the specified time
+  
+  **Styling:** Indigo color theme
+  
+  **Note:**
+  Your **regular** class schedule is set in onboarding/profile. Use class events for makeup classes, guest lectures, or schedule changes.
+</Accordion>
+
+<Accordion title="🎉 Holiday">
+  **Use for:** Days off, vacations, school breaks
+  
+  **Routine Impact:**
+  - Zero energy cost
+  - Does NOT block routine time
+  - Visual indicator only
+  
+  **Styling:** Green/success color theme
+  
+  **Tips:**
+  - Mark multi-day breaks as separate events
+  - Useful for planning around vacation time
+</Accordion>
+
+<Accordion title="⭐ Other">
+  **Use for:** Any event that doesn't fit other categories
+  
+  **Routine Impact:**
+  - Varies based on time specified
+  - Category: Defaults to LEISURE
+  
+  **Styling:** Gray/muted color theme
+  
+  **Examples:**
+  - Doctor appointments
+  - Social commitments  
+  - Family events
+  - Volunteer activities
+</Accordion>
+
+## View Modes
+
+The calendar offers two view modes:
+
+### Monthly Grid View
+
+Classic calendar grid showing the full month:
+
+- **Layout:** 7×5 grid (days of week × weeks)
+- **Event Display:** Colored dots for each event
+- **Click Day:** Opens daily event list
+- **Navigation:** Previous/Next month arrows
+
+**Best for:**
+- Overview of upcoming events
+- Planning weeks in advance
+- Spotting free days
+
+<Tip>
+Today's date is highlighted with a colored border for easy orientation.
+</Tip>
+
+### Weekly List View
+
+Detailed list of the current week's events:
+
+- **Layout:** 7 rows (one per day)
+- **Event Display:** Full event cards with times
+- **Actions:** Edit/Delete directly from list
+- **Quick Add:** + button per day
+
+**Best for:**
+- Detailed view of this week
+- Managing event details
+- Quick edits and updates
+
+<Note>
+Switch between views using the grid/list icons in the top toolbar.
+</Note>
+
+## Editing Events
+
+<Steps>
+  <Step title="Find the event">
+    Locate your event in either calendar view.
+  </Step>
+
+  <Step title="Click the event card">
+    In monthly view, click the day then click the event.
+    
+    In weekly view, click directly on the event card.
+    
+    The edit icon (pencil) appears on hover.
+  </Step>
+
+  <Step title="Modify details">
+    The same form appears, pre-filled with existing data.
+    
+    Change any fields you want to update.
+  </Step>
+
+  <Step title="Save changes">
+    Click **Save** to update the event.
+    
+    Changes sync immediately and affect routine regeneration.
+  </Step>
+</Steps>
+
+## Deleting Events
+
+To remove an event:
+
+1. Click the event to open details
+2. Look for the delete icon (trash)
+3. Click to delete
+4. Confirm if prompted
+
+<Warning>
+Deleting events is permanent and cannot be undone. The event is removed from your calendar and the routine engine will regenerate schedules without it.
+</Warning>
+
+## Event Integration with Routines
+
+Calendar events directly impact your daily routine generation:
+
+### How Events Block Time
+
+When the routine engine runs:
+
+1. It fetches all events for the target date
+2. Creates fixed blocks for each event
+3. Treats them as immovable commitments
+4. Schedules study tasks around them
+
+**Example:**
+```typescript
+// If you have an exam at 10:00 on March 15:
+Event: "Math Exam" (exam type)
+Date: 2026-03-15
+Time: 10:00
+
+// Routine engine creates:
+Fixed Block {
+  type: 'FIXED',
+  category: 'SPORT', // Match events use SPORT
+  title: 'Event: Math Exam',
+  startTime: '10:00',
+  duration: 120 minutes,
+  energyCost: 10,
+  isLocked: true
+}
+```
+
+### Event Energy Impact
+
+Events consume energy budget:
+
+| Event Type | Category | Energy Cost |
+|------------|----------|-------------|
+| Exam | ACADEMIC | 10 |
+| Match | SPORT | 10 |
+| Training | SPORT | 9 |
+| Class | ACADEMIC | 7 |
+| Holiday | - | 0 |
+| Other | LEISURE | 5 |
+
+High-energy events reduce available cognitive/physical capacity for that day.
+
+<Accordion title="Why do exams cost so much energy?">
+  Exams are cognitively and emotionally demanding. The routine engine accounts for:
+  - Pre-exam stress and preparation
+  - Mental exhaustion during the exam
+  - Post-exam recovery time
+  
+  By assigning a high energy cost (10 units), the engine automatically schedules lighter workloads on exam days.
+</Accordion>
+
+## Weekly Schedule Setup
+
+For **recurring** commitments like classes and training, use your profile settings instead of calendar events:
+
+### Regular Class Schedule
+
+Set in: **Settings → Academic Profile → Class Schedule**
+
+- Monday-Friday schedule
+- Start and end times per day
+- Automatically blocks routine time
+- No need to create calendar events
+
+### Regular Training Schedule  
+
+Set in: **Settings → Activity Profile → Training Schedule**
+
+- All 7 days available
+- Main and secondary activities
+- Separate schedules for each
+- Automatically blocks routine time
+
+<Tip>
+Use profile schedules for recurring commitments and calendar events for one-time or exceptional dates.
+</Tip>
+
+## Calendar vs. Profile Schedules
+
+| Feature | Calendar Events | Profile Schedule |
+|---------|----------------|------------------|
+| **Use Case** | One-time events | Recurring weekly |
+| **Examples** | Exams, matches | Classes, training |
+| **Configuration** | Per event | Per weekday |
+| **Routine Impact** | Single day | Every week |
+| **Editable** | Individual events | Profile settings |
+
+<Note>
+Both systems work together. The routine engine combines profile schedules (recurring) with calendar events (one-time) to create your daily routine.
+</Note>
+
+## Best Practices
+
+<Accordion title="Plan exams in advance">
+  Create exam events 1-2 weeks before the date:
+  
+  - Gives routine engine time to allocate prep study
+  - Helps you visualize exam density
+  - Allows adjustment if too many exams in one week
+  
+  The engine prioritizes subjects with `hasUpcomingExam: true` flag.
+</Accordion>
+
+<Accordion title="Use accurate times">
+  Always include start and end times when known:
+  
+  - Enables precise routine blocking
+  - Accounts for travel time
+  - Prevents scheduling conflicts
+  
+  Without times, events default to 2-hour blocks.
+</Accordion>
+
+<Accordion title="Categorize correctly">
+  Choose the right event type:
+  
+  - Affects energy calculation
+  - Impacts routine balance (cognitive vs physical)
+  - Improves calendar filtering
+  
+  Don't use "Other" as a catch-all - pick the closest match.
+</Accordion>
+
+<Accordion title="Review weekly">
+  Check your calendar every Monday:
+  
+  - Upcoming events for the week
+  - Recently added items
+  - Outdated events to delete
+  
+  Keeps your calendar and routines accurate.
+</Accordion>
+
+<Accordion title="Sync with school calendar">
+  Add school events in batches:
+  
+  - Import exam schedule at semester start
+  - Add all match dates at season start
+  - Mark holidays and breaks
+  
+  One-time bulk import saves daily maintenance.
+</Accordion>
+
+## Filtering and Search
+
+<Note>
+Currently, the calendar does not support filtering by event type or searching by title. All events for the selected month/week are displayed. These features may be added in future versions.
+</Note>
+
+## Exporting Calendar
+
+<Warning>
+Calendar export functionality is not yet implemented. You cannot export events to .ics files or sync with Google Calendar/Outlook. This is a planned feature.
+</Warning>
+
+## Mobile Experience
+
+The calendar is fully responsive:
+
+- **Mobile:** Single-column weekly list recommended
+- **Tablet:** Monthly grid works well
+- **Desktop:** Both views optimized
+
+Touch interactions supported:
+- Tap to select day
+- Tap event to edit
+- Swipe month navigation (coming soon)
+
+## Troubleshooting
+
+<Accordion title="Event not showing in routine">
+  **Possible causes:**
+  - Event date doesn't match routine date
+  - Event has no time specified (defaults to 2hr block)
+  - Routine hasn't regenerated yet
+  
+  **Solution:**
+  - Verify event date matches today
+  - Add start time to event
+  - Refresh dashboard to trigger regeneration
+</Accordion>
+
+<Accordion title="Can't edit event">
+  **Possible causes:**
+  - Network sync issue
+  - Browser cache problem
+  - Event was deleted
+  
+  **Solution:**
+  - Refresh page
+  - Check internet connection
+  - Try creating a new event instead
+</Accordion>
+
+<Accordion title="Wrong event times">
+  **Cause:** Timezone mismatch
+  
+  **Solution:**
+  - Events use local system time
+  - Check computer's date/time settings
+  - Verify timezone is correct
+</Accordion>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Creating Routines" icon="calendar" href="/guides/creating-routines">
+    Learn how events integrate with routine generation
+  </Card>
+  <Card title="Achievements" icon="trophy" href="/guides/achievements">
+    Earn XP for completing study blocks
+  </Card>
+</CardGroup>

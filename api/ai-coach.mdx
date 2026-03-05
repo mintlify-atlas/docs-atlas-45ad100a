@@ -1,0 +1,402 @@
+---
+title: 'AI Coach'
+description: 'AI-powered coaching and translation via Groq API'
+---
+
+# AI Coach API
+
+The AI Coach endpoint provides conversational coaching and text translation using the Groq API (llama3-8b-8192 model).
+
+## Endpoint
+
+```
+POST /api/ai
+```
+
+**File:** `/home/daytona/workspace/source/api/ai.ts`
+
+## Rate Limiting
+
+<Warning>
+  **Limit:** 30 requests per minute per IP address
+  
+  Tracked using in-memory map with 60-second sliding window.
+</Warning>
+
+```typescript
+// Rate limit exceeded response
+{
+  "error": "Demasiadas peticiones",
+  "code": 429
+}
+```
+
+## Actions
+
+The endpoint supports two actions: `chat` and `translate`.
+
+### Chat Action
+
+Provides personalized coaching based on user context.
+
+#### Request Parameters
+
+<ParamField path="action" type="string" required>
+  Must be `"chat"`
+</ParamField>
+
+<ParamField path="message" type="string" required>
+  User's message to the AI coach (max 2000 characters)
+</ParamField>
+
+<ParamField path="context" type="object">
+  User context for personalization
+  
+  **Fields:**
+  - `userName` (string): User's display name
+  - `mainSport` (string): Primary sport/activity
+  - `activeTasks` (string[]): List of active task titles
+  - `todayPomodoros` (number): Completed pomodoros today
+  - `language` (string): Response language (default: 'español')
+</ParamField>
+
+#### Example Request
+
+```typescript
+const response = await fetch('/api/ai', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action: 'chat',
+    message: '¿Cómo organizo mi tiempo de estudio hoy?',
+    context: {
+      userName: 'Carlos',
+      mainSport: 'Fútbol',
+      activeTasks: ['Matemáticas Cap 5', 'Ensayo de Historia'],
+      todayPomodoros: 4,
+      language: 'español'
+    }
+  })
+});
+
+const data = await response.json();
+console.log(data.text); // AI response
+```
+
+#### System Prompt
+
+The AI uses this context-aware system prompt:
+
+```typescript
+`Eres Routine Optimizer AI Coach. Ayudas a estudiantes-deportistas.
+Contexto del usuario:
+- Nombre: ${context?.userName || 'Estudiante'}
+- Deporte principal: ${context?.mainSport || 'Ninguno'}
+- Tareas activas: ${context?.activeTasks?.join(', ') || 'Ninguna'}
+- Pomodoros de hoy: ${context?.todayPomodoros || 0}
+Responde en ${context?.language || 'español'}, sé directo, motivador y claro.`
+```
+
+#### Response
+
+<ResponseField name="text" type="string">
+  The AI-generated coaching response
+</ResponseField>
+
+```json
+{
+  "text": "¡Hola Carlos! Con 4 pomodoros completados, vas muy bien. Te sugiero dedicar 2 pomodoros más a Matemáticas y luego descansar antes del entrenamiento de fútbol."
+}
+```
+
+### Translate Action
+
+Translates text to a target language.
+
+#### Request Parameters
+
+<ParamField path="action" type="string" required>
+  Must be `"translate"`
+</ParamField>
+
+<ParamField path="text" type="string" required>
+  Text to translate (max 2000 characters)
+</ParamField>
+
+<ParamField path="targetLang" type="string" required>
+  Target language code (max 10 characters)
+  
+  Examples: 'en', 'es', 'fr', 'de', 'english', 'spanish'
+</ParamField>
+
+#### Example Request
+
+```typescript
+const response = await fetch('/api/ai', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    action: 'translate',
+    text: 'Buenos días, ¿cómo estás?',
+    targetLang: 'english'
+  })
+});
+
+const data = await response.json();
+console.log(data.text); // "Good morning, how are you?"
+```
+
+#### System Prompt
+
+```typescript
+`Traduce el siguiente texto al idioma ${targetLang}. Responde ÚNICAMENTE con la traducción, sin más comentarios.`
+```
+
+#### Response
+
+<ResponseField name="text" type="string">
+  The translated text
+</ResponseField>
+
+```json
+{
+  "text": "Good morning, how are you?"
+}
+```
+
+## Error Responses
+
+### 400 - Bad Request
+
+**Missing action:**
+```json
+{
+  "error": "Campo 'action' requerido y debe ser texto"
+}
+```
+
+**Missing message (chat):**
+```json
+{
+  "error": "Campo 'message' requerido para acción chat"
+}
+```
+
+**Message too long:**
+```json
+{
+  "error": "El mensaje excede el límite de 2000 caracteres"
+}
+```
+
+**Missing text (translate):**
+```json
+{
+  "error": "Campo 'text' requerido para acción translate"
+}
+```
+
+**Invalid target language:**
+```json
+{
+  "error": "Campo 'targetLang' requerido y debe ser un código de idioma válido"
+}
+```
+
+**Invalid action:**
+```json
+{
+  "error": "Acción no válida"
+}
+```
+
+### 405 - Method Not Allowed
+
+```json
+{
+  "error": "Método no permitido"
+}
+```
+
+Only `POST` requests are accepted (besides `OPTIONS` for CORS).
+
+### 429 - Too Many Requests
+
+```json
+{
+  "error": "Demasiadas peticiones",
+  "code": 429
+}
+```
+
+Triggered after 30 requests in 60 seconds from the same IP.
+
+### 500 - Internal Server Error
+
+```json
+{
+  "error": "Clave de Groq no encontrada en el servidor",
+  "code": 500
+}
+```
+
+Indicates missing `GROQ_API_KEY` environment variable.
+
+### 503 - Service Unavailable
+
+```json
+{
+  "error": "IA no disponible",
+  "code": 503
+}
+```
+
+or
+
+```json
+{
+  "error": "IA fallida o no disponible",
+  "code": 503
+}
+```
+
+Indicates Groq API is down or returned an error.
+
+## CORS Configuration
+
+The endpoint includes CORS headers:
+
+```typescript
+res.setHeader('Access-Control-Allow-Credentials', 'true');
+res.setHeader('Access-Control-Allow-Origin', process.env.VITE_APP_URL || 'http://localhost:5173');
+res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+```
+
+**Allowed Origin:** Configured via `VITE_APP_URL` environment variable.
+
+## Environment Variables
+
+<ParamField path="GROQ_API_KEY" type="string" required>
+  Your Groq API key for llama3-8b-8192 model access
+</ParamField>
+
+<ParamField path="VITE_APP_URL" type="string">
+  Allowed CORS origin (defaults to `http://localhost:5173`)
+</ParamField>
+
+## Implementation Details
+
+### IP Detection
+
+Extracts real IP for rate limiting:
+
+```typescript
+const ip = req.headers['x-real-ip'] || req.socket.remoteAddress || 'desconocida';
+const direccionIp = Array.isArray(ip) ? ip[0] : ip;
+```
+
+### Rate Limit Storage
+
+```typescript
+const rateLimit = new Map<string, number[]>();  // IP -> timestamps[]
+
+const tiempos = rateLimit.get(direccionIp) || [];
+const tiemposValidos = tiempos.filter(t => ahora - t < 60000); // Last 60s
+
+if (tiemposValidos.length >= 30) {
+  return res.status(429).json({ error: "Demasiadas peticiones", code: 429 });
+}
+```
+
+### Groq API Request
+
+```typescript
+const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    model: 'llama3-8b-8192',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: message }
+    ]
+  })
+});
+```
+
+## Usage in App
+
+### Chat Hook Example
+
+```typescript
+import { useState } from 'react';
+
+export function useAICoach() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const sendMessage = async (message: string, context?: any) => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'chat', message, context })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'AI request failed');
+      }
+
+      return data.text;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return { sendMessage, loading, error };
+}
+```
+
+### Translation Hook Example
+
+```typescript
+export async function translateText(text: string, targetLang: string): Promise<string> {
+  const response = await fetch('/api/ai', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'translate', text, targetLang })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Translation failed');
+  }
+
+  return data.text;
+}
+```
+
+## Best Practices
+
+<Check>**Rate Limit Awareness:** Implement client-side debouncing and caching to stay under 30 req/min.</Check>
+
+<Check>**Context Quality:** Provide rich context for better coaching responses.</Check>
+
+<Check>**Error Handling:** Always handle 429 and 503 errors gracefully with retry logic.</Check>
+
+<Check>**Input Validation:** Validate message/text length on client before sending.</Check>
+
+<Check>**Loading States:** Show clear loading indicators during AI operations.</Check>

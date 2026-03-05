@@ -1,0 +1,431 @@
+---
+title: AI Coach
+description: Intelligent mentorship system powered by Groq LLM that provides personalized study guidance, motivation, and productivity insights
+---
+
+# AI Coach
+
+Estudio Three's AI Coach is your personal academic mentor—an intelligent assistant that understands your schedule, workload, and goals to provide contextual advice, study strategies, and motivational support.
+
+## What It Does
+
+The AI Coach uses a large language model (Groq's Llama3) to have conversations with you about:
+- Daily and weekly planning
+- Study strategies for specific subjects
+- Motivation and mindset coaching
+- Time management optimization
+- Recovery and break recommendations
+
+<CardGroup cols={2}>
+  <Card title="Contextual Awareness" icon="brain">
+    Coach knows your tasks, grades, habits, schedule, and Pomodoro history
+  </Card>
+  <Card title="Natural Conversations" icon="message-circle">
+    Chat naturally about any academic or productivity challenge
+  </Card>
+  <Card title="Quick Actions" icon="zap">
+    Pre-built prompts for common needs (plan day, get motivated, etc.)
+  </Card>
+  <Card title="Personalized Advice" icon="user-check">
+    Recommendations tailored to your sport, subjects, and energy levels
+  </Card>
+</CardGroup>
+
+## Why It Matters
+
+Student-athletes face unique challenges that generic productivity advice doesn't address:
+- **Balancing competing demands** (training vs studying)
+- **Energy management** across physical and mental tasks
+- **Variable schedules** with competitions and travel
+- **Isolation** from typical academic support systems
+- **Time constraints** that make traditional tutoring difficult
+
+The AI Coach solves this by:
+- Being available 24/7 whenever you need guidance
+- Understanding the student-athlete context specifically
+- Providing instant feedback without judgment
+- Learning from your actual patterns and preferences
+- Offering strategies proven effective for your situation
+
+## How to Use It
+
+### Starting Your First Conversation
+
+1. Navigate to **AI Coach** page
+2. Choose a quick action button, or
+3. Type your question in the input field
+4. Click **Send** or press Enter
+5. Coach responds with personalized advice
+6. Continue the conversation as needed
+
+<Tip>
+The AI Coach has full context on your profile, active tasks, today's Pomodoros, habits, grades, and upcoming events. The more data you have in the app, the better the advice.
+</Tip>
+
+### Quick Action Prompts
+
+Pre-built prompts for common needs:
+
+<CardGroup cols={2}>
+  <Card title="Plan Day" icon="calendar-day" color="#3b82f6">
+    Get a structured plan for today based on your schedule and tasks
+  </Card>
+  <Card title="Plan Week" icon="calendar-week" color="#8b5cf6">
+    Receive strategic weekly planning advice with priority allocation
+  </Card>
+  <Card title="Motivate Me" icon="sparkles" color="#f59e0b">
+    Get motivational boost tailored to your current situation
+  </Card>
+  <Card title="Break Advice" icon="coffee" color="#10b981">
+    Learn optimal break strategies based on your training load
+  </Card>
+</CardGroup>
+
+### Example Conversations
+
+<Accordion title="Daily Planning Example">
+  **You**: Plan my day
+  
+  **Coach**: Hey! Let's structure your day. I see you have Physics at 9am, training at 3pm, and 3 active tasks.
+  
+  Here's my recommendation:
+  - 7:00-8:30am: Morning routine + breakfast
+  - 8:30-9:00am: Review Physics notes before class
+  - 9:00-12:00pm: Classes
+  - 12:00-1:00pm: Lunch + rest
+  - 1:00-2:45pm: Focus session - Math homework (2 Pomodoros)
+  - 3:00-5:00pm: Training
+  - 5:00-6:00pm: Recovery + dinner
+  - 6:00-7:30pm: Focus session - English essay (3 Pomodoros)
+  - 7:30-9:00pm: Review tomorrow's materials
+  - 9:00-10:00pm: Wind down routine
+  
+  Your cognitive load is moderate today. You can handle 5 Pomodoros after training. Focus on Math first while energy is highest.
+</Accordion>
+
+<Accordion title="Study Strategy Example">
+  **You**: I'm struggling with Physics. What should I do?
+  
+  **Coach**: I see Physics is rated as difficulty 10 and your current average is 72%. Let's build a recovery plan:
+  
+  1. **Identify weak areas**: Review your recent test. Which concepts did you miss?
+  2. **Active recall**: Don't just re-read. Practice problems without notes first.
+  3. **Spaced repetition**: Study Physics for 1 Pomodoro daily, not cramming.
+  4. **Office hours**: Schedule time with your teacher this week.
+  5. **Study group**: Find 2-3 classmates to work through problems together.
+  
+  I'll prioritize Physics in your smart routine. Let's aim for 5 hours this week. You've got this!
+</Accordion>
+
+<Accordion title="Motivation Example">
+  **You**: I'm exhausted and don't want to study
+  
+  **Coach**: I hear you. You completed training today and already did 2 Pomodoros this morning. That's solid work!
+  
+  Remember why you're doing this: [references your goals if set]. You're not just a student or just an athlete—you're proving you can do both.
+  
+  Here's what I suggest:
+  1. Take a real 20-minute break. No phone, just rest.
+  2. Do ONE Pomodoro on your easiest task.
+  3. Reassess. If still exhausted, it's okay to stop.
+  
+  Consistency beats perfection. One focused session today keeps your streak alive. Tomorrow is a new opportunity.
+</Accordion>
+
+### Types of Questions to Ask
+
+**Planning Questions**:
+- "How should I structure my week?"
+- "What should I prioritize today?"
+- "Help me plan for exam week"
+- "I have a competition Saturday, how do I adjust?"
+
+**Study Strategy Questions**:
+- "What's the best way to study for [subject]?"
+- "How can I improve my grade in [subject]?"
+- "I have 3 exams next week, how do I prepare?"
+- "What study method works for [topic]?"
+
+**Motivation Questions**:
+- "I'm feeling overwhelmed"
+- "How do I stay consistent?"
+- "I missed my goals this week"
+- "How do other student-athletes manage this?"
+
+**Tactical Questions**:
+- "Should I study before or after training?"
+- "How long should my breaks be?"
+- "When is the best time to study [subject]?"
+- "How do I recover faster between tasks?"
+
+## Technical Details
+
+### AI Architecture
+
+The AI Coach uses a serverless architecture:
+
+**Client** → **Vercel API Proxy** → **Groq API** → **Llama3 Model**
+
+#### API Endpoint
+
+**Location**: `api/ai.ts`
+
+The Vercel serverless function handles:
+- CORS configuration for web app
+- Rate limiting (30 requests per minute per IP)
+- Request validation and sanitization
+- Groq API communication
+- Error handling and fallbacks
+
+**Rate Limiting Implementation**:
+
+```typescript
+const rateLimit = new Map<string, number[]>();
+
+const ip = req.headers['x-real-ip'] || req.socket.remoteAddress;
+const now = Date.now();
+const times = rateLimit.get(ip) || [];
+const validTimes = times.filter(t => now - t < 60000); // last minute
+
+if (validTimes.length >= 30) {
+  return res.status(429).json({ 
+    error: "Too many requests", 
+    code: 429 
+  });
+}
+
+validTimes.push(now);
+rateLimit.set(ip, validTimes);
+```
+
+#### Context Building
+
+Before sending to the LLM, the client builds rich context:
+
+**Location**: `src/features/ai-coach/components/AICoachPage.tsx:31`
+
+```typescript
+function buildContext() {
+  return {
+    userProfile: {
+      name: user.name,
+      sport: user.mainSport,
+      waterGoal: user.waterGoal
+    },
+    dailyRoutine: {
+      totalCognitiveLoad: routine.cognitiveLoad,
+      totalPhysicalLoad: routine.physicalLoad
+    },
+    language: settings.language,
+    activeTasks: tasks.filter(t => t.status !== 'completed'),
+    todayPomodoros: pomodoroStore.sessionsCompleted,
+    habits: habits.map(h => ({
+      name: h.title,
+      streak: h.currentStreak
+    })),
+    subjects: subjects.map(s => ({
+      name: s.name,
+      average: academicsStore.getWeightedAverage(s.id),
+      nextExam: s.nextExamDate
+    })),
+    upcomingEvents: calendar.getUpcomingEvents(7),
+    totalResources: resources.length
+  };
+}
+```
+
+This context is sent with every message, allowing the AI to provide personalized responses.
+
+#### System Prompt
+
+The AI Coach uses a carefully crafted system prompt:
+
+**Location**: `api/ai.ts:79`
+
+```typescript
+const systemPrompt = `Eres Routine Optimizer AI Coach. Ayudas a estudiantes-deportistas.
+Contexto del usuario:
+- Nombre: ${context.userName}
+- Deporte principal: ${context.mainSport}
+- Tareas activas: ${context.activeTasks.join(', ')}
+- Pomodoros de hoy: ${context.todayPomodoros}
+Responde en ${context.language}, sé directo, motivador y claro.`;
+```
+
+This tells the LLM:
+- Its role (student-athlete coach)
+- User's specific situation
+- Current state (tasks, progress)
+- Communication style (direct, motivating)
+
+#### Model Selection
+
+Using **Groq's Llama3-8B** model:
+- Fast inference (< 1 second response time)
+- Strong reasoning capabilities
+- Cost-effective for high volume
+- Supports multi-language responses
+
+**API Call** (`api/ai.ts:87`):
+
+```typescript
+const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    model: 'llama3-8b-8192',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userMessage }
+    ]
+  })
+});
+```
+
+### State Management
+
+**Store**: `src/stores/useChatStore.ts`
+
+```typescript
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp?: string;
+}
+
+interface ChatState {
+  messages: ChatMessage[];
+  isLoading: boolean;
+  addMessage: (message: ChatMessage) => void;
+  clearMessages: () => void;
+  setLoading: (loading: boolean) => void;
+}
+```
+
+Messages are stored in local state only (not persisted to database). Each session starts fresh.
+
+### Components
+
+**AICoachPage** (`src/features/ai-coach/components/AICoachPage.tsx:16`)
+- Main chat interface
+- Message history display
+- Input field with send button
+- Quick action buttons
+- Loading states
+
+**Message Display**:
+- User messages: Right-aligned, primary color
+- Assistant messages: Left-aligned, muted background
+- Avatar icons distinguish speakers
+- Rounded corners and smooth animations
+
+### Error Handling
+
+Multiple layers of error handling:
+
+1. **Client-side validation** (`src/features/ai-coach/services/aiService.ts:27`)
+   - Checks for empty messages
+   - Validates context structure
+   - Handles network errors
+
+2. **API-level validation** (`api/ai.ts:49`)
+   - Validates request body
+   - Checks message length (max 2000 chars)
+   - Enforces rate limits
+
+3. **Graceful degradation**
+   - 429 (Too many requests): "You've sent too many messages..."
+   - 503 (Service unavailable): "AI service unavailable..."
+   - Network error: "Connection error. Check your internet."
+
+## Security & Privacy
+
+<CardGroup cols={2}>
+  <Card title="Rate Limiting" icon="shield-check">
+    30 requests per minute per IP prevents abuse and controls costs
+  </Card>
+  <Card title="Input Sanitization" icon="filter">
+    All user inputs sanitized before sending to AI to prevent injection
+  </Card>
+  <Card title="No Message Storage" icon="trash">
+    Chat history not saved to database—privacy by default
+  </Card>
+  <Card title="CORS Protection" icon="lock">
+    API endpoint restricted to app domain only
+  </Card>
+</CardGroup>
+
+### API Key Security
+
+Groq API key stored as environment variable:
+- Never exposed to client
+- Accessed only in serverless function
+- Rotated periodically
+- Monitored for usage patterns
+
+## Best Practices
+
+<Accordion title="Be Specific in Your Questions">
+  Better: "I have a Physics exam Friday and I'm weak on thermodynamics. How should I study?"
+  
+  Worse: "Help me study"
+  
+  The more context you provide, the better the advice.
+</Accordion>
+
+<Accordion title="Use Quick Actions First">
+  If you're asking a common question (plan day, get motivated), use the quick action buttons. They're optimized prompts that trigger specialized responses.
+</Accordion>
+
+<Accordion title="Keep Data Updated">
+  The AI Coach is only as good as your data. Keep tasks, grades, and habits current for best advice.
+</Accordion>
+
+<Accordion title="Treat It Like a Real Coach">
+  Have conversations, not just one-off questions. Follow up with "Why?" or "Can you elaborate?" to dig deeper.
+</Accordion>
+
+## Limitations
+
+<Note>
+**Current Limitations**:
+- Chat history not persisted (resets on page refresh)
+- No long-term memory across sessions
+- Cannot directly modify your schedule or create tasks
+- Limited to text-based advice (no visual diagrams)
+- Rate limited to prevent abuse (30 requests/minute)
+</Note>
+
+**Future Enhancements**:
+- Persistent conversation history
+- Proactive suggestions based on patterns
+- Direct integration ("Schedule this for me")
+- Voice input/output support
+- Multi-modal responses (charts, schedules)
+
+## Integration with Other Features
+
+- **Task Management**: Coach sees active tasks and can suggest priorities
+- **Pomodoro Timer**: Uses today's focus time in recommendations
+- **Academic Tracking**: Knows your grades and can suggest study focus
+- **Habits & Goals**: References your goals for motivational context
+- **Smart Routines**: Understands your schedule and energy patterns
+- **Calendar**: Aware of upcoming events and deadlines
+
+## Language Support
+
+The AI Coach responds in your configured language:
+- English
+- Spanish (default)
+- Portuguese
+- French
+
+Set language in **Settings** → **Language**. The coach automatically adapts.
+
+---
+
+**Next Steps**: Explore the complete [Core Features overview](/features) to see how all features work together, or dive into [Getting Started](/introduction/quickstart) to begin your journey.
