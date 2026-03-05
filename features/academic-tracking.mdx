@@ -121,6 +121,40 @@ Each subject shows:
 
 ## Key Capabilities
 
+### Study Resources
+
+Attach learning materials directly to your subjects for quick access during study sessions:
+
+<CardGroup cols={2}>
+  <Card title="Links" icon="link">
+    Save URLs to online articles, tutorials, or course materials
+  </Card>
+  <Card title="Videos" icon="video">
+    Link to educational videos, lectures, or demonstrations
+  </Card>
+  <Card title="Files" icon="file">
+    Reference PDFs, slides, or documents (stored externally)
+  </Card>
+  <Card title="Books" icon="book">
+    Track textbooks and reading materials
+  </Card>
+</CardGroup>
+
+#### Adding a Resource
+
+1. Open any subject card
+2. Navigate to the **Resources** tab
+3. Click **"+ Add Resource"**
+4. Select resource type (Link, Video, File, Book)
+5. Enter title and URL (if applicable)
+6. Click **Save**
+
+Resources appear in a list with preview icons based on the domain (e.g., YouTube icon for youtube.com links).
+
+<Tip>
+Use the Resources feature to centralize all study materials. When the Smart Routines engine schedules study time for a subject, you'll have instant access to all relevant materials.
+</Tip>
+
 ### Weighted Average Calculation
 
 The system calculates weighted averages per subject:
@@ -229,7 +263,7 @@ interface Grade {
 
 ### State Management
 
-**Store**: `src/stores/useAcademicsStore.ts`
+**Academics Store**: `src/stores/useAcademicsStore.ts`
 
 Key methods:
 - `fetchSubjects()` - Load from Supabase
@@ -242,6 +276,28 @@ Key methods:
 - `getWeightedAverage(subjectId)` - Calculate subject average
 - `getGlobalAverage()` - Calculate overall GPA
 - `getUpcomingExams(days)` - Find upcoming tests
+
+**Resources Store**: `src/stores/useResourcesStore.ts`
+
+Key methods:
+- `fetchResources()` - Load from Supabase
+- `addResource(subjectId, title, type, url)` - Create new resource
+- `deleteResource(id)` - Remove resource
+- `getResourcesBySubject(subjectId)` - Filter by subject
+
+Resource types:
+```typescript
+type ResourceType = 'LINK' | 'FILE' | 'BOOK' | 'VIDEO';
+
+interface Resource {
+  id: string;
+  subjectId: string;
+  title: string;
+  type: ResourceType;
+  url?: string;
+  createdAt: string;
+}
+```
 
 ### Components
 
