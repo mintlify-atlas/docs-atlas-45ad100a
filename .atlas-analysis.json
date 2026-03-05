@@ -1,0 +1,112 @@
+{
+  "projectType": "saas",
+  "projectName": "Estudio Three",
+  "projectDescription": "Smart daily routine optimizer with task management, Pomodoro timer, academic tracking, and AI assistant for student-athletes.",
+  "theme": "almond",
+  "primaryColor": "#40ca8a",
+  "lightColor": "#3aa476",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/task-management",
+              "features/pomodoro-timer",
+              "features/smart-routines",
+              "features/academic-tracking",
+              "features/habits-goals",
+              "features/ai-coach"
+            ]
+          },
+          {
+            "group": "User Guides",
+            "pages": [
+              "guides/onboarding",
+              "guides/creating-routines",
+              "guides/focus-mode",
+              "guides/calendar-events",
+              "guides/achievements"
+            ]
+          },
+          {
+            "group": "Technical",
+            "pages": [
+              "technical/architecture",
+              "technical/database-schema",
+              "technical/pwa-features",
+              "technical/internationalization"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Deployment",
+        "groups": [
+          {
+            "group": "Setup",
+            "pages": [
+              "deployment/environment-variables",
+              "deployment/supabase-setup",
+              "deployment/docker",
+              "deployment/vercel"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "api/overview",
+              "api/authentication"
+            ]
+          },
+          {
+            "group": "Endpoints",
+            "pages": [
+              "api/ai-coach",
+              "api/tasks",
+              "api/routines",
+              "api/calendar"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Smart routine optimization algorithm",
+    "Pomodoro timer with task tracking",
+    "Academic subjects and grades management",
+    "Calendar with events and weekly schedule",
+    "Habit tracking with streaks",
+    "Goals and achievements system",
+    "AI Performance Coach (Groq/Llama 3)",
+    "Focus mode with ambient sound engine",
+    "Multi-language support (ES, EN, FR, IT)",
+    "PWA with offline support",
+    "Gamification with XP and levels",
+    "Dashboard with statistics"
+  ],
+  "publicApiSurface": [
+    "/api/ai - AI Coach serverless function",
+    "Supabase Database Tables: profiles, subjects, tasks, events, habits, goals, achievements",
+    "Zustand Stores: useAuthStore, useTaskStore, usePomodoroStore, useCalendarStore, useHabitsStore, useGoalsStore, useAchievementsStore, useAcademicsStore",
+    "React Components: TimerScreen, TaskListPage, CalendarView, AcademicsPage, AICoachPage, OnboardingWizard",
+    "Routine Engine: createFixedBlocks, scheduleFlexibleTasks, expandSession"
+  ]
+}
